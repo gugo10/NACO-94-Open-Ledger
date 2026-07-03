@@ -1,0 +1,2560 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      :root {
+        --green: #12613f;
+        --green-dark: #0b3f2b;
+        --green-soft: #eaf6ef;
+        --gold: #c99b20;
+        --gold-soft: #fff7df;
+        --ink: #1d2939;
+        --muted: #667085;
+        --line: #dde5df;
+        --soft: #f6f8f5;
+        --surface: #ffffff;
+        --danger: #b42318;
+        --danger-soft: #fff1f2;
+        --warning: #946200;
+        --ok: #166534;
+        --shadow: 0 10px 28px rgba(18, 97, 63, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(201, 155, 32, 0.12), transparent 32rem),
+          linear-gradient(180deg, #f7fbf8 0%, #ffffff 42%);
+        line-height: 1.5;
+        font-size: 16px;
+      }
+
+      .app-header {
+        background:
+          linear-gradient(135deg, rgba(11, 63, 43, 0.96), rgba(18, 97, 63, 0.94)),
+          var(--green);
+        color: #ffffff;
+        padding: 22px 16px 20px;
+        border-bottom: 4px solid var(--gold);
+      }
+
+      .brand-row {
+        max-width: 1120px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand-mark {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: #fff3bf;
+        font-weight: 900;
+        letter-spacing: 0;
+        flex: 0 0 auto;
+      }
+
+      .app-title {
+        margin: 0;
+        font-size: 25px;
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      .tagline {
+        margin: 5px 0 0;
+        color: #ffe7a3;
+        font-size: 15px;
+      }
+
+      .status-bar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        overflow-x: auto;
+        border-bottom: 1px solid rgba(18, 97, 63, 0.12);
+        padding: 12px max(12px, calc((100vw - 1120px) / 2 + 14px));
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(10px);
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 5px 11px;
+        border-radius: 999px;
+        border: 1px solid #d9e7dd;
+        background: #ffffff;
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .badge.ok {
+        border-color: #bfe8cb;
+        background: #effaf2;
+        color: var(--ok);
+      }
+
+      .badge.warn {
+        border-color: #f6d777;
+        background: var(--gold-soft);
+        color: var(--warning);
+      }
+
+      .nav {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 12px max(12px, calc((100vw - 1120px) / 2 + 14px));
+        border-bottom: 1px solid rgba(18, 97, 63, 0.12);
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+
+      .nav button {
+        min-height: 42px;
+        padding: 10px 15px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--ink);
+        font-size: 15px;
+        font-weight: 700;
+        white-space: nowrap;
+        box-shadow: 0 1px 0 rgba(16, 24, 40, 0.04);
+      }
+
+      .nav button.active {
+        background: var(--green);
+        border-color: var(--green);
+        color: #ffffff;
+      }
+
+      main {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 22px 14px 56px;
+      }
+
+      .panel {
+        border: 1px solid rgba(18, 97, 63, 0.12);
+        border-radius: 14px;
+        padding: 18px;
+        margin-bottom: 16px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--shadow);
+      }
+
+      h2 {
+        margin: 0 0 8px;
+        font-size: 23px;
+        line-height: 1.2;
+      }
+
+      h3 {
+        margin: 0 0 8px;
+        font-size: 18px;
+        line-height: 1.25;
+      }
+
+      p {
+        margin: 0 0 10px;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .metric {
+        min-height: 100px;
+        border: 1px solid rgba(18, 97, 63, 0.12);
+        border-radius: 14px;
+        padding: 14px;
+        background: linear-gradient(180deg, #ffffff, #f8fbf8);
+        box-shadow: 0 6px 18px rgba(16, 24, 40, 0.04);
+      }
+
+      .metric-label {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+
+      .metric-value {
+        font-size: 24px;
+        font-weight: 800;
+        overflow-wrap: anywhere;
+      }
+
+      .action-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .action {
+        min-height: 46px;
+        border: 0;
+        border-radius: 10px;
+        padding: 12px;
+        background: var(--green);
+        color: #ffffff;
+        font-size: 15px;
+        font-weight: 800;
+        box-shadow: 0 8px 16px rgba(18, 97, 63, 0.18);
+      }
+
+      .action.secondary {
+        background: #ffffff;
+        border: 1px solid var(--green);
+        color: var(--green-dark);
+      }
+
+      .action.danger {
+        background: #ffffff;
+        border: 1px solid var(--danger);
+        color: var(--danger);
+      }
+
+      .locked {
+        opacity: 0.58;
+      }
+
+      .message {
+        border-left: 4px solid var(--gold);
+        background: var(--gold-soft);
+        padding: 12px;
+        border-radius: 10px;
+      }
+
+      .error {
+        border-left-color: var(--danger);
+        background: #fff1f2;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      label {
+        display: block;
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 5px;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        font: inherit;
+        background: #ffffff;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus,
+      button:focus {
+        outline: 3px solid rgba(201, 155, 32, 0.28);
+        outline-offset: 2px;
+      }
+
+      textarea {
+        min-height: 84px;
+        resize: vertical;
+      }
+
+      .check-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .check-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px;
+      }
+
+      .check-item input {
+        width: 20px;
+        min-height: 20px;
+      }
+
+      .directory-list,
+      .request-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .directory-card,
+      .request-card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        background: var(--soft);
+      }
+
+      .directory-name {
+        font-size: 17px;
+        font-weight: 800;
+      }
+
+      .small {
+        font-size: 13px;
+      }
+
+      .busy-bar {
+        display: none;
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        z-index: 10;
+        min-height: 46px;
+        border-radius: 8px;
+        padding: 12px 14px;
+        background: var(--green-dark);
+        color: #ffffff;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.22);
+        font-weight: 800;
+      }
+
+      .toast {
+        display: none;
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        top: 12px;
+        z-index: 11;
+        min-height: 46px;
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: #ffffff;
+        color: var(--ink);
+        border: 1px solid rgba(18, 97, 63, 0.16);
+        box-shadow: 0 16px 36px rgba(16, 24, 40, 0.18);
+        font-weight: 800;
+      }
+
+      .toast.show {
+        display: block;
+      }
+
+      .busy-bar.show {
+        display: block;
+      }
+
+      .action[disabled],
+      button[disabled] {
+        cursor: wait;
+        opacity: 0.62;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 680px;
+        background: #ffffff;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 12px 10px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        font-size: 13px;
+        color: var(--muted);
+        background: #f8fbf8;
+      }
+
+      @media (max-width: 640px) {
+        .app-title {
+          font-size: 21px;
+        }
+
+        main {
+          padding: 16px 10px 42px;
+        }
+
+        .grid,
+        .action-row,
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .panel {
+          padding: 14px;
+          border-radius: 12px;
+        }
+
+        .brand-mark {
+          width: 42px;
+          height: 42px;
+          border-radius: 12px;
+        }
+
+        .nav button {
+          min-height: 44px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand-row">
+        <div class="brand-mark">94</div>
+        <div>
+          <h1 class="app-title"><?= appName ?></h1>
+          <p class="tagline"><?= tagline ?></p>
+        </div>
+      </div>
+    </header>
+
+    <div class="busy-bar" id="busyBar" role="status" aria-live="polite">Working...</div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <section class="status-bar" id="statusBar">
+      <span class="badge warn">Loading account access...</span>
+    </section>
+
+    <nav class="nav" id="nav" aria-label="Main sections"></nav>
+
+    <main id="app">
+      <section class="panel">
+        <h2>Loading</h2>
+            <p class="muted">Opening the NACO'94 member portal.</p>
+      </section>
+    </main>
+
+    <script>
+      const state = {
+        bootstrap: null,
+        activeSection: 'dashboard',
+        myProfile: null,
+        directory: [],
+        pendingRequests: [],
+        finance: null,
+        administration: null,
+        busy: false,
+        busyTimer: null,
+        toastTimer: null
+      };
+
+      const sectionContent = {
+        dashboard: {
+          title: 'Dashboard',
+          body: 'View simple financial balances and recent published records.',
+          metrics: ['Total Funds Available', 'Bank Balance', 'Cash at Hand', 'Last Updated']
+        },
+        finances: {
+          title: 'Finances',
+          body: 'View published money in and money out records.',
+          actions: ['Search Transactions', 'View Account Status']
+        },
+        bankMatching: {
+          title: 'Bank Matching',
+          body: 'Finance Officers and Publishers will match bank statement entries to published records here in Stage 5.',
+          actions: ['Upload Bank Statement', 'Match Bank Entries']
+        },
+        reports: {
+          title: 'Reports',
+          body: 'Published monthly, quarterly and annual reports will appear here when reporting is added.',
+          actions: ['Monthly Summary', 'Annual Summary']
+        },
+        members: {
+          title: 'Members',
+          body: 'View the member directory. Members only appear with the details they have chosen to share.',
+          actions: ['View Members']
+        },
+        myProfile: {
+          title: 'My Profile',
+          body: 'View your details, request updates, and choose what appears in the member directory.',
+          actions: ['Update My Details']
+        },
+        administration: {
+          title: 'Administration',
+          body: 'System Administrators can manage settings, roles, folders and future setup tasks here.',
+          actions: ['View Setup Status', 'Manage Roles']
+        }
+      };
+
+      function showBusy(message) {
+        state.busy = true;
+        const busyBar = document.getElementById('busyBar');
+        busyBar.textContent = message || 'Working...';
+        busyBar.classList.add('show');
+        document.querySelectorAll('button.action').forEach(function(button) {
+          if (!button.disabled) {
+            button.dataset.busyDisabled = '1';
+            button.disabled = true;
+          }
+        });
+        clearTimeout(state.busyTimer);
+        state.busyTimer = setTimeout(function() {
+          hideBusy();
+        }, 30000);
+      }
+
+      function hideBusy() {
+        state.busy = false;
+        clearTimeout(state.busyTimer);
+        document.getElementById('busyBar').classList.remove('show');
+        document.querySelectorAll('button[data-busy-disabled="1"]').forEach(function(button) {
+          button.disabled = false;
+          delete button.dataset.busyDisabled;
+        });
+      }
+
+      function showMessage(message) {
+        hideBusy();
+        showToast(message);
+      }
+
+      function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message || '';
+        toast.classList.add('show');
+        clearTimeout(state.toastTimer);
+        state.toastTimer = setTimeout(function() {
+          toast.classList.remove('show');
+        }, 5000);
+      }
+
+      window.alert = showToast;
+
+      function flashWorking(message) {
+        if (state.busy) {
+          return;
+        }
+        const busyBar = document.getElementById('busyBar');
+        busyBar.textContent = message || 'Working...';
+        busyBar.classList.add('show');
+        clearTimeout(state.busyTimer);
+        state.busyTimer = setTimeout(function() {
+          if (!state.busy) {
+            busyBar.classList.remove('show');
+          }
+        }, 8000);
+      }
+
+      document.addEventListener('submit', function() {
+        flashWorking('Saving...');
+      }, true);
+
+      document.addEventListener('click', function(event) {
+        if (event.target.closest('button.action')) {
+          flashWorking('Working...');
+        }
+      }, true);
+
+      document.addEventListener('change', function(event) {
+        if (event.target.matches('input[type="date"][data-calendar-for]')) {
+          const target = document.getElementById(event.target.dataset.calendarFor);
+          if (target) {
+            target.value = isoToDisplayDate(event.target.value);
+          }
+        }
+      }, true);
+
+      document.addEventListener('blur', function(event) {
+        if (event.target.matches('input[placeholder="dd-mm-yyyy"]')) {
+          const calendar = document.querySelector(`input[type="date"][data-calendar-for="${event.target.id}"]`);
+          if (calendar) {
+            calendar.value = displayToIsoDate(event.target.value);
+          }
+        }
+      }, true);
+
+      function loadApp() {
+        showBusy('Opening app...');
+        google.script.run
+          .withSuccessHandler(function(bootstrap) {
+            hideBusy();
+            state.bootstrap = bootstrap;
+            if (bootstrap.navigation.length) {
+              state.activeSection = bootstrap.navigation[0].key;
+            }
+            render();
+          })
+          .withFailureHandler(function(error) {
+            hideBusy();
+            renderError(error.message || String(error));
+          })
+          .getAppBootstrap();
+      }
+
+      function render() {
+        renderStatus();
+        renderNavigation();
+
+        if (!state.bootstrap.user.allowed) {
+          renderAccessDenied();
+          return;
+        }
+
+        renderSection(state.activeSection);
+      }
+
+      function renderStatus() {
+        const user = state.bootstrap.user;
+        const roles = user.roles.length ? user.roles.join(', ') : 'No role';
+        document.getElementById('statusBar').innerHTML = [
+          `<span class="badge ${user.allowed ? 'ok' : 'warn'}">${escapeHtml(user.status)}</span>`,
+          `<span class="badge">${escapeHtml(user.email || 'No Google email detected')}</span>`,
+          `<span class="badge">${escapeHtml(roles)}</span>`,
+          `<span class="badge ${state.bootstrap.configured ? 'ok' : 'warn'}">${state.bootstrap.configured ? 'Configured' : 'Setup needed'}</span>`
+        ].join('');
+      }
+
+      function renderNavigation() {
+        const nav = document.getElementById('nav');
+        nav.innerHTML = state.bootstrap.navigation.map(function(item) {
+          const active = item.key === state.activeSection ? 'active' : '';
+          return `<button type="button" class="${active}" data-section="${item.key}">${escapeHtml(item.label)}</button>`;
+        }).join('');
+
+        nav.querySelectorAll('button').forEach(function(button) {
+          button.addEventListener('click', function() {
+            state.activeSection = button.dataset.section;
+            render();
+          });
+        });
+      }
+
+      function renderAccessDenied() {
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>Access Needed</h2>
+            <p>${escapeHtml(state.bootstrap.user.message)}</p>
+            <p class="muted">Ask the Membership Administrator or System Administrator to add your Google email address to the Users sheet.</p>
+          </section>
+        `;
+      }
+
+      function renderSection(sectionKey) {
+        if (sectionKey === 'dashboard') {
+          renderDashboard();
+          return;
+        }
+
+        if (sectionKey === 'finances') {
+          renderFinances();
+          return;
+        }
+
+        if (sectionKey === 'reports') {
+          renderReports();
+          return;
+        }
+
+        if (sectionKey === 'myProfile') {
+          renderMyProfile();
+          return;
+        }
+
+        if (sectionKey === 'members') {
+          renderMembers();
+          return;
+        }
+
+        if (sectionKey === 'administration') {
+          renderAdministration();
+          return;
+        }
+
+        if (sectionKey === 'bankMatching') {
+          renderBankStatements();
+          return;
+        }
+
+        const content = sectionContent[sectionKey] || sectionContent.dashboard;
+        const metrics = content.metrics ? renderMetrics(content.metrics) : '';
+        const actions = content.actions ? renderActions(content.actions) : '';
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>${escapeHtml(content.title)}</h2>
+            <p>${escapeHtml(content.body)}</p>
+            <p class="muted">Current stage: ${escapeHtml(state.bootstrap.stage)}</p>
+          </section>
+          ${metrics}
+          ${actions}
+        `;
+      }
+
+      function renderMetrics(metrics) {
+        return `
+          <section class="grid">
+            ${metrics.map(function(metric) {
+              return `
+                <div class="metric">
+                  <div class="metric-label">${escapeHtml(metric)}</div>
+                  <div class="metric-value">--</div>
+                </div>
+              `;
+            }).join('')}
+          </section>
+        `;
+      }
+
+      function renderActions(actions) {
+        return `
+          <section class="panel">
+            <h3>Available Actions</h3>
+            <div class="action-row">
+              ${actions.map(function(action) {
+                return `<button type="button" class="action secondary locked" disabled>${escapeHtml(action)}</button>`;
+              }).join('')}
+            </div>
+          </section>
+        `;
+      }
+
+      function renderDashboard() {
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>Dashboard</h2>
+            <p class="muted">Loading financial summary...</p>
+          </section>
+        `;
+
+        google.script.run
+          .withSuccessHandler(function(data) {
+            state.finance = data;
+            drawDashboard(data);
+          })
+          .withFailureHandler(function(error) {
+            renderInlineError('Dashboard', error.message || String(error));
+          })
+          .getFinanceData();
+      }
+
+      function drawDashboard(data) {
+        const summary = data.summary;
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>Dashboard</h2>
+            <p class="muted">Clear account balances from published records only.</p>
+          </section>
+          <section class="grid">
+            ${metricCard('Total Funds Available', formatMoney(summary.totalFunds))}
+            ${metricCard('Bank Balance', formatMoney(summary.bankBalance))}
+            ${metricCard('Cash at Hand', formatMoney(summary.cashAtHand))}
+            ${metricCard('Money In This Month', formatMoney(summary.moneyInThisMonth))}
+            ${metricCard('Money Out This Month', formatMoney(summary.moneyOutThisMonth))}
+            ${metricCard('Money In This Year', formatMoney(summary.moneyInThisYear))}
+            ${metricCard('Money Out This Year', formatMoney(summary.moneyOutThisYear))}
+            ${metricCard('Last Updated', formatShortDateTime(summary.lastUpdated))}
+          </section>
+          ${renderAccountsPanel(data.accounts)}
+          ${renderApprovedTransactionsPanel(data.approvedTransactions)}
+        `;
+      }
+
+      function renderFinances() {
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>Finances</h2>
+            <p class="muted">Loading finance records...</p>
+          </section>
+        `;
+
+        google.script.run
+          .withSuccessHandler(function(data) {
+            state.finance = data;
+            drawFinances(data);
+          })
+          .withFailureHandler(function(error) {
+            renderInlineError('Finances', error.message || String(error));
+          })
+          .getFinanceData();
+      }
+
+      function drawFinances(data) {
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>Finances</h2>
+            <p class="muted">Members see published records only. Finance Officers prepare records and Publishers make them visible.</p>
+          </section>
+          ${renderFinanceEntryPanels(data)}
+          <div id="cashPanel"></div>
+          ${renderPublishPanel(data)}
+          ${renderFinanceSettingsPanel(data)}
+          ${renderAccountsPanel(data.accounts)}
+          ${renderApprovedTransactionsPanel(data.approvedTransactions)}
+        `;
+
+        bindFinanceForms(data);
+        loadCashPanel();
+      }
+
+      function loadCashPanel() {
+        google.script.run
+          .withSuccessHandler(function(stage6) {
+            document.getElementById('cashPanel').innerHTML = renderCashPanel(stage6);
+            bindCashControls(stage6);
+          })
+          .withFailureHandler(function(error) {
+            document.getElementById('cashPanel').innerHTML = `<section class="panel message error"><p>${escapeHtml(error.message || String(error))}</p></section>`;
+          })
+          .getStage6Data();
+      }
+
+      function renderCashPanel(stage6) {
+        return `
+          ${stage6.canEnterCash ? `
+            <section class="panel">
+              <h3>Cash Count</h3>
+              <form id="cashCountForm" class="form-grid">
+                ${selectField('Cash account', 'Account ID', stage6.cashAccounts.map(accountOption))}
+                ${dateInputField('Count Date', 'Count Date', todayDisplay())}
+                ${inputField('Expected Cash Balance', 'Expected Cash Balance', '0')}
+                ${inputField('Actual Cash Counted', 'Actual Cash Counted', '0')}
+                <div style="grid-column: 1 / -1;">${textAreaField('Explanation if different', 'Explanation', '')}</div>
+                <div style="grid-column: 1 / -1;"><button class="action" type="submit">Save Cash Count</button></div>
+              </form>
+            </section>
+          ` : ''}
+          <section class="panel">
+            <h3>Recent Cash Counts</h3>
+            ${stage6.recentCashCounts.length ? renderCashCountsTable(stage6.recentCashCounts, stage6.canReviewCash) : '<p class="muted">No cash counts yet.</p>'}
+          </section>
+        `;
+      }
+
+      function renderCashCountsTable(cashCounts, canReviewCash) {
+        return `
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Expected</th><th>Actual</th><th>Difference</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                ${cashCounts.map(function(item) {
+                  return `<tr><td>${escapeHtml(item.countDate)}</td><td>${formatMoney(item.expectedCashBalance)}</td><td>${formatMoney(item.actualCashCounted)}</td><td>${formatMoney(item.difference)}</td><td><span class="badge">${escapeHtml(item.status)}</span></td><td>${canReviewCash && item.status !== 'Reviewed' ? `<button class="action secondary" type="button" data-review-cash="${escapeAttr(item.cashCountId)}">Review</button>` : ''}</td></tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function bindCashControls(stage6) {
+        const form = document.getElementById('cashCountForm');
+        if (form) {
+          form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            google.script.run
+              .withSuccessHandler(function(result) {
+                alert('Cash count saved. Difference: ' + formatMoney(result.difference));
+                renderFinances();
+              })
+              .withFailureHandler(function(error) {
+                alert(error.message || String(error));
+              })
+              .recordCashCount(readFormValues(event.target));
+          });
+        }
+
+        document.querySelectorAll('[data-review-cash]').forEach(function(button) {
+          button.addEventListener('click', function() {
+            const note = prompt('Cash count review note', '') || '';
+            google.script.run
+              .withSuccessHandler(renderFinances)
+              .withFailureHandler(function(error) { alert(error.message || String(error)); })
+              .reviewCashCount(button.dataset.reviewCash, note);
+          });
+        });
+      }
+
+      function renderFinanceEntryPanels(data) {
+        if (!data.canEnterFinance) {
+          return '';
+        }
+
+        return `
+          <section class="panel">
+            <h3>Add Money In</h3>
+            <form id="moneyInForm" class="form-grid">
+              ${dateInputField('Date', 'Date', todayDisplay())}
+              ${inputField('Amount', 'Amount', '')}
+              ${selectField('Account received into', 'Account ID', data.accounts.map(accountOption))}
+              ${inputField('Source or payer', 'Payer or Payee', '')}
+              ${selectField('Category', 'Category ID', data.categories.filter(function(category) { return category.categoryType === 'Money In'; }).map(categoryOption))}
+              ${inputField('Reference number', 'Reference Number', '')}
+              ${inputField('Payment method', 'Payment Method', '')}
+              ${selectField('Related fund or project', 'Fund ID', [{ value: '', label: 'None' }].concat(data.funds.map(fundOption)))}
+              ${fileField('Receipt or proof of payment', 'Proof File', 'application/pdf,image/jpeg,image/png', 'Optional. PDF, JPG, or PNG up to 5 MB.')}
+              <div style="grid-column: 1 / -1;">${textAreaField('Description', 'Description', '')}</div>
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Submit Money In</button></div>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Add Money Out</h3>
+            <form id="moneyOutForm" class="form-grid">
+              ${dateInputField('Date', 'Date', todayDisplay())}
+              ${inputField('Amount', 'Amount', '')}
+              ${selectField('Account paid from', 'Account ID', data.accounts.map(accountOption))}
+              ${inputField('Payee', 'Payer or Payee', '')}
+              ${selectField('Category', 'Category ID', data.categories.filter(function(category) { return category.categoryType === 'Money Out'; }).map(categoryOption))}
+              ${inputField('Reference number', 'Reference Number', '')}
+              ${inputField('Payment method', 'Payment Method', '')}
+              ${selectField('Related fund or project', 'Fund ID', [{ value: '', label: 'None' }].concat(data.funds.map(fundOption)))}
+              ${fileField('Receipt, invoice or proof', 'Proof File', 'application/pdf,image/jpeg,image/png', 'Optional. PDF, JPG, or PNG up to 5 MB.')}
+              <div style="grid-column: 1 / -1;">${textAreaField('Description', 'Description', '')}</div>
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Submit Money Out</button></div>
+            </form>
+          </section>
+        `;
+      }
+
+      function renderPublishPanel(data) {
+        if (!data.canPublishFinance) {
+          return '';
+        }
+
+        return `
+          <section class="panel">
+            <h3>Ready to Publish</h3>
+            ${data.pendingTransactions.length ? renderTransactionTable(data.pendingTransactions, true) : '<p class="muted">No transactions are ready to publish.</p>'}
+          </section>
+        `;
+      }
+
+      function renderFinanceSettingsPanel(data) {
+        if (!data.canManageFinanceSettings) {
+          return '';
+        }
+
+        return `
+          <section class="panel">
+            <h3>Add Account</h3>
+            <form id="accountForm" class="form-grid">
+              ${inputField('Account Name', 'Account Name', '')}
+              ${selectField('Account Type', 'Account Type', [
+                { value: 'Bank Account', label: 'Bank Account' },
+                { value: 'Cash at Hand', label: 'Cash at Hand' },
+                { value: 'Welfare Fund', label: 'Welfare Fund' },
+                { value: 'School Project Fund', label: 'School Project Fund' },
+                { value: 'Reunion or Event Fund', label: 'Reunion or Event Fund' },
+                { value: 'General Association Fund', label: 'General Association Fund' },
+                { value: 'Other Special Project Fund', label: 'Other Special Project Fund' }
+              ])}
+              ${inputField('Opening Balance', 'Opening Balance', '0')}
+              ${inputField('Currency', 'Currency', 'NGN')}
+              ${inputField('Masked Bank Account Number', 'Masked Bank Account Number', '')}
+              <div style="grid-column: 1 / -1;">${textAreaField('Notes', 'Notes', '')}</div>
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Add Account</button></div>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Add Fund or Project</h3>
+            <form id="fundForm" class="form-grid">
+              ${inputField('Fund or project name', 'name', '')}
+              ${selectField('Type', 'type', [
+                { value: 'General Association Fund', label: 'General Association Fund' },
+                { value: 'Welfare Fund', label: 'Welfare Fund' },
+                { value: 'School Project Fund', label: 'School Project Fund' },
+                { value: 'Reunion or Event Fund', label: 'Reunion or Event Fund' },
+                { value: 'Other Special Project Fund', label: 'Other Special Project Fund' }
+              ])}
+              <div style="grid-column: 1 / -1;">${textAreaField('Notes', 'notes', '')}</div>
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Add Fund or Project</button></div>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Add Income or Expense Category</h3>
+            <form id="categoryForm" class="form-grid">
+              ${selectField('Type', 'categoryType', [
+                { value: 'Money In', label: 'Money In' },
+                { value: 'Money Out', label: 'Money Out' }
+              ])}
+              ${inputField('Category name', 'categoryName', '')}
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Add Category</button></div>
+            </form>
+          </section>
+        `;
+      }
+
+      function renderAccountsPanel(accounts) {
+        return `
+          <section class="panel">
+            <h3>Account Status</h3>
+            ${accounts.length ? `
+              <div class="grid">
+                ${accounts.map(function(account) {
+                  return metricCard(account.accountName, formatMoney(account.currentBalance) + ' ' + escapeHtml(account.currency));
+                }).join('')}
+              </div>
+            ` : '<p class="muted">No active accounts have been added yet.</p>'}
+          </section>
+        `;
+      }
+
+      function renderApprovedTransactionsPanel(transactions) {
+        return `
+          <section class="panel">
+            <h3>Published Transactions</h3>
+            ${transactions.length ? renderTransactionTable(transactions, false) : '<p class="muted">No published transactions yet.</p>'}
+          </section>
+        `;
+      }
+
+      function renderTransactionTable(transactions, reviewMode) {
+        return `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  ${reviewMode ? '<th>Action</th>' : ''}
+                </tr>
+              </thead>
+              <tbody>
+                ${transactions.map(function(transaction) {
+                  return `
+                    <tr>
+                      <td>${escapeHtml(transaction.date)}</td>
+                      <td>${escapeHtml(transaction.transactionType)}</td>
+                      <td>${escapeHtml(transaction.description)}<br><span class="small muted">${escapeHtml(transaction.payerOrPayee || '')}</span></td>
+                      <td>${formatMoney(transaction.amount)}</td>
+                      <td><span class="badge">${escapeHtml(transaction.status)}</span></td>
+                      ${reviewMode ? `<td><button class="action secondary" type="button" data-txn-review="${escapeAttr(transaction.transactionId)}" data-decision="Published">Publish</button><br><br><button class="action danger" type="button" data-txn-review="${escapeAttr(transaction.transactionId)}" data-decision="Sent Back">Send Back</button></td>` : ''}
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function bindFinanceForms(data) {
+        const moneyInForm = document.getElementById('moneyInForm');
+        if (moneyInForm) {
+          moneyInForm.addEventListener('submit', function(event) {
+            submitFinanceTransaction(event, 'recordMoneyIn');
+          });
+        }
+
+        const moneyOutForm = document.getElementById('moneyOutForm');
+        if (moneyOutForm) {
+          moneyOutForm.addEventListener('submit', function(event) {
+            submitFinanceTransaction(event, 'recordMoneyOut');
+          });
+        }
+
+        const accountForm = document.getElementById('accountForm');
+        if (accountForm) {
+          accountForm.addEventListener('submit', submitAccount);
+        }
+
+        const fundForm = document.getElementById('fundForm');
+        if (fundForm) {
+          fundForm.addEventListener('submit', submitFund);
+        }
+
+        const categoryForm = document.getElementById('categoryForm');
+        if (categoryForm) {
+          categoryForm.addEventListener('submit', submitCategory);
+        }
+
+        document.querySelectorAll('[data-txn-review]').forEach(function(button) {
+          button.addEventListener('click', reviewFinanceTransaction);
+        });
+      }
+
+      function submitFinanceTransaction(event, methodName) {
+        event.preventDefault();
+        const record = readFormValues(event.target);
+        const fileInput = event.target.querySelector('input[type="file"]');
+        const file = fileInput && fileInput.files.length ? fileInput.files[0] : null;
+
+        if (!file) {
+          submitFinanceRecord(methodName, record);
+          return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+          alert('File is too large. Maximum size is 5 MB.');
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function() {
+          google.script.run
+            .withSuccessHandler(function(documentResult) {
+              record['Document ID'] = documentResult.documentId;
+              submitFinanceRecord(methodName, record);
+            })
+            .withFailureHandler(function(error) {
+              alert(error.message || String(error));
+            })
+            .uploadFinanceDocument({
+              fileName: file.name,
+              mimeType: file.type,
+              base64: String(reader.result).split(',')[1],
+              visibility: 'Finance Only'
+            });
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function submitFinanceRecord(methodName, record) {
+        google.script.run
+          .withSuccessHandler(function(result) {
+            alert('Transaction submitted: ' + result.transactionId);
+            renderFinances();
+          })
+          .withFailureHandler(function(error) {
+            alert(error.message || String(error));
+          })[methodName](record);
+      }
+
+      function submitAccount(event) {
+        event.preventDefault();
+        google.script.run
+          .withSuccessHandler(function(result) {
+            alert('Account added: ' + result.accountId);
+            renderFinances();
+          })
+          .withFailureHandler(function(error) {
+            alert(error.message || String(error));
+          })
+          .addAccount(readFormValues(event.target));
+      }
+
+      function submitFund(event) {
+        event.preventDefault();
+        google.script.run
+          .withSuccessHandler(function(result) {
+            alert('Fund or project added: ' + result.fundId);
+            renderFinances();
+          })
+          .withFailureHandler(function(error) {
+            alert(error.message || String(error));
+          })
+          .addFundProject(readFormValues(event.target));
+      }
+
+      function submitCategory(event) {
+        event.preventDefault();
+        google.script.run
+          .withSuccessHandler(function(result) {
+            alert('Category added: ' + result.categoryId);
+            renderFinances();
+          })
+          .withFailureHandler(function(error) {
+            alert(error.message || String(error));
+          })
+          .addFinanceCategory(readFormValues(event.target));
+      }
+
+      function reviewFinanceTransaction(event) {
+        const transactionId = event.target.dataset.txnReview;
+        const decision = event.target.dataset.decision;
+        const reason = prompt(decision + ' note', '');
+        if (reason === null) {
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function() {
+            renderFinances();
+          })
+          .withFailureHandler(function(error) {
+            alert(error.message || String(error));
+          })
+          .publishTransaction(transactionId, decision, reason);
+      }
+
+      function renderAdministration() {
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>Administration</h2>
+            <p class="muted">Loading user access...</p>
+          </section>
+        `;
+
+        google.script.run
+          .withSuccessHandler(function(data) {
+            state.administration = data;
+            drawAdministration(data);
+          })
+          .withFailureHandler(function(error) {
+            renderInlineError('Administration', error.message || String(error));
+          })
+          .getAdministrationData();
+      }
+
+      function renderBankStatements() {
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>Bank Matching</h2>
+            <p class="muted">Loading bank statement and matching tools...</p>
+          </section>
+        `;
+
+        google.script.run
+          .withSuccessHandler(function(data) {
+            google.script.run
+              .withSuccessHandler(function(financeData) {
+                state.finance = financeData;
+                google.script.run
+                  .withSuccessHandler(function(matchData) {
+                    drawBankStatements(data, matchData);
+                  })
+                  .withFailureHandler(function(error) {
+                    renderInlineError('Bank Matching', error.message || String(error));
+                  })
+                  .getBankMatchingData();
+              })
+              .withFailureHandler(function(error) {
+                renderInlineError('Bank Matching', error.message || String(error));
+              })
+              .getFinanceData();
+          })
+          .withFailureHandler(function(error) {
+            renderInlineError('Bank Matching', error.message || String(error));
+          })
+          .getBankStatementData();
+      }
+
+      function drawBankStatements(data, matchData) {
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>Bank Matching</h2>
+            <p class="muted">Store bank statements, match bank lines to published records, and prepare simple reconciliations.</p>
+          </section>
+          ${renderMatchWorkspace(matchData)}
+          <section class="panel">
+            <h3>Upload CSV Bank Statement</h3>
+            <form id="csvPreviewForm" class="form-grid">
+              ${selectField('Account', 'Account ID', data.accounts.map(accountOption))}
+              ${fileField('CSV bank statement', 'CSV File', '.csv,text/csv', 'CSV file exported from the bank.')}
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Preview CSV</button></div>
+            </form>
+            <div id="csvPreview"></div>
+          </section>
+          <section class="panel">
+            <h3>Upload PDF Bank Statement</h3>
+            <form id="pdfUploadForm" class="form-grid">
+              ${fileField('PDF bank statement', 'PDF File', 'application/pdf', 'PDF bank statement up to 10 MB.')}
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Store PDF Statement</button></div>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Manual Statement Entry</h3>
+            <form id="manualBankLineForm" class="form-grid">
+              ${selectField('Account', 'Account ID', data.accounts.map(accountOption))}
+              ${dateInputField('Statement Date', 'Statement Date', todayDisplay())}
+              ${inputField('Description', 'Description', '')}
+              ${inputField('Money In', 'Money In', '')}
+              ${inputField('Money Out', 'Money Out', '')}
+              ${inputField('Running Balance', 'Running Balance', '')}
+              ${inputField('Reference Number', 'Reference Number', '')}
+              <div style="grid-column: 1 / -1;">${textAreaField('Notes', 'Notes', '')}</div>
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Save Bank Line</button></div>
+            </form>
+          </section>
+          ${renderBankImports(data.imports)}
+          ${renderBankLines(data.lines)}
+          ${renderReconciliations(matchData.reconciliations)}
+        `;
+
+        document.getElementById('csvPreviewForm').addEventListener('submit', submitCsvPreview);
+        document.getElementById('pdfUploadForm').addEventListener('submit', submitPdfUpload);
+        document.getElementById('manualBankLineForm').addEventListener('submit', submitManualBankLine);
+        bindMatchingControls(matchData);
+      }
+
+      function renderMatchWorkspace(matchData) {
+        return `
+          <section class="panel">
+            <h3>Match Bank Entries</h3>
+            <p class="muted">Choose a bank line and match it to a published transaction with the same amount.</p>
+            <div class="form-grid">
+              <div>
+                <label for="selectedBankLine">Bank statement line</label>
+                <select id="selectedBankLine">
+                  ${matchData.unmatchedBankLines.map(function(line) {
+                    return `<option value="${escapeAttr(line.bankLineId)}">${escapeHtml(line.statementDate + ' - ' + line.description + ' - In ' + formatMoney(line.moneyIn) + ' / Out ' + formatMoney(line.moneyOut))}</option>`;
+                  }).join('')}
+                </select>
+              </div>
+              <div>
+                <label for="selectedTransaction">Published transaction</label>
+                <select id="selectedTransaction">
+                  ${matchData.unmatchedTransactions.map(function(transaction) {
+                    return `<option value="${escapeAttr(transaction.transactionId)}">${escapeHtml(transaction.date + ' - ' + transaction.description + ' - ' + formatMoney(transaction.amount))}</option>`;
+                  }).join('')}
+                </select>
+              </div>
+              <div style="grid-column: 1 / -1;">
+                <button class="action" type="button" id="matchSelectedButton">Match Selected</button>
+                <button class="action secondary" type="button" id="suggestMatchesButton">Suggest Matches</button>
+                <button class="action secondary" type="button" id="needsReviewButton">Needs Review</button>
+                <button class="action secondary" type="button" id="internalTransferButton">Internal Transfer</button>
+              </div>
+            </div>
+            <div id="matchSuggestions"></div>
+          </section>
+          <section class="panel">
+            <h3>Create Record From Bank Line</h3>
+            <p class="muted">Use this when the bank shows money in or out that has not yet been entered in the ledger.</p>
+            <form id="createFromBankLineForm" class="form-grid">
+              <div>
+                <label for="createBankLineId">Bank line</label>
+                <select id="createBankLineId" name="Bank Line ID">
+                  ${matchData.unmatchedBankLines.map(function(line) {
+                    return `<option value="${escapeAttr(line.bankLineId)}">${escapeHtml(line.statementDate + ' - ' + line.description)}</option>`;
+                  }).join('')}
+                </select>
+              </div>
+              ${selectField('Category', 'Category ID', state.finance ? state.finance.categories.map(categoryOption) : [])}
+              ${selectField('Fund or project', 'Fund ID', [{ value: '', label: 'None' }].concat(state.finance ? state.finance.funds.map(fundOption) : []))}
+              ${inputField('Payer or payee', 'Payer or Payee', '')}
+              <div style="grid-column: 1 / -1;">${textAreaField('Description', 'Description', '')}</div>
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Create Ledger Record</button></div>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Prepare Reconciliation</h3>
+            <form id="reconciliationForm" class="form-grid">
+              ${selectField('Account', 'Account ID', matchData.accounts.map(accountOption))}
+              ${dateInputField('Period Start', 'Period Start', todayDisplay())}
+              ${dateInputField('Period End', 'Period End', todayDisplay())}
+              ${inputField('Opening Balance', 'Opening Balance', '0')}
+              ${inputField('Statement Closing Balance', 'Statement Closing Balance', '0')}
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Prepare Reconciliation</button></div>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Recent Matches</h3>
+            ${matchData.recentMatches.length ? renderSimpleMatchTable(matchData.recentMatches) : '<p class="muted">No matches yet.</p>'}
+          </section>
+        `;
+      }
+
+      function bindMatchingControls(matchData) {
+        const matchButton = document.getElementById('matchSelectedButton');
+        if (matchButton) {
+          matchButton.addEventListener('click', function() {
+            const bankLineId = document.getElementById('selectedBankLine').value;
+            const transactionId = document.getElementById('selectedTransaction').value;
+            google.script.run
+              .withSuccessHandler(function(result) {
+                alert('Matched: ' + result.matchId);
+                renderBankStatements();
+              })
+              .withFailureHandler(function(error) {
+                alert(error.message || String(error));
+              })
+              .matchBankLineToTransaction(bankLineId, transactionId, '');
+          });
+        }
+
+        const suggestButton = document.getElementById('suggestMatchesButton');
+        if (suggestButton) {
+          suggestButton.addEventListener('click', function() {
+            const bankLineId = document.getElementById('selectedBankLine').value;
+            google.script.run
+              .withSuccessHandler(renderMatchSuggestions)
+              .withFailureHandler(function(error) {
+                alert(error.message || String(error));
+              })
+              .getMatchSuggestions(bankLineId);
+          });
+        }
+
+        const needsReviewButton = document.getElementById('needsReviewButton');
+        if (needsReviewButton) {
+          needsReviewButton.addEventListener('click', function() {
+            const note = prompt('Why does this need review?', '') || '';
+            google.script.run
+              .withSuccessHandler(renderBankStatements)
+              .withFailureHandler(function(error) { alert(error.message || String(error)); })
+              .markBankLineNeedsReview(document.getElementById('selectedBankLine').value, note);
+          });
+        }
+
+        const transferButton = document.getElementById('internalTransferButton');
+        if (transferButton) {
+          transferButton.addEventListener('click', function() {
+            const note = prompt('Internal transfer note', '') || '';
+            google.script.run
+              .withSuccessHandler(renderBankStatements)
+              .withFailureHandler(function(error) { alert(error.message || String(error)); })
+              .markBankLineInternalTransfer(document.getElementById('selectedBankLine').value, note);
+          });
+        }
+
+        const createForm = document.getElementById('createFromBankLineForm');
+        if (createForm) {
+          createForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const values = readFormValues(event.target);
+            const bankLineId = values['Bank Line ID'];
+            delete values['Bank Line ID'];
+            google.script.run
+              .withSuccessHandler(function(result) {
+                alert('Ledger record created: ' + result.transactionId + '. It must still be published.');
+                renderBankStatements();
+              })
+              .withFailureHandler(function(error) { alert(error.message || String(error)); })
+              .createTransactionFromBankLine(bankLineId, values);
+          });
+        }
+
+        const reconciliationForm = document.getElementById('reconciliationForm');
+        if (reconciliationForm) {
+          reconciliationForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            google.script.run
+              .withSuccessHandler(function(result) {
+                alert('Reconciliation prepared: ' + result.reconciliationId + '. Difference: ' + formatMoney(result.summary.difference));
+                renderBankStatements();
+              })
+              .withFailureHandler(function(error) { alert(error.message || String(error)); })
+              .prepareReconciliation(readFormValues(event.target));
+          });
+        }
+
+        document.querySelectorAll('[data-publish-reconciliation]').forEach(function(button) {
+          button.addEventListener('click', function() {
+            const note = prompt('Publish reconciliation note', '') || '';
+            google.script.run
+              .withSuccessHandler(renderBankStatements)
+              .withFailureHandler(function(error) { alert(error.message || String(error)); })
+              .publishReconciliation(button.dataset.publishReconciliation, note);
+          });
+        });
+      }
+
+      function renderMatchSuggestions(suggestions) {
+        document.getElementById('matchSuggestions').innerHTML = suggestions.length ? `
+          <h3>Suggested Matches</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Score</th><th>Transaction</th><th>Amount</th></tr></thead>
+              <tbody>
+                ${suggestions.map(function(item) {
+                  return `<tr><td>${escapeHtml(item.score)}</td><td>${escapeHtml(item.transaction.transactionId + ' - ' + item.transaction.description)}</td><td>${formatMoney(item.transaction.amount)}</td></tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : '<p class="muted">No likely matches found.</p>';
+      }
+
+      function renderSimpleMatchTable(matches) {
+        return `
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Match ID</th><th>Bank Line</th><th>Transaction</th><th>Status</th></tr></thead>
+              <tbody>
+                ${matches.map(function(match) {
+                  return `<tr><td>${escapeHtml(match.matchId)}</td><td>${escapeHtml(match.bankLineId)}</td><td>${escapeHtml(match.transactionId)}</td><td>${escapeHtml(match.matchStatus)}</td></tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderReconciliations(reconciliations) {
+        return `
+          <section class="panel">
+            <h3>Reconciliations</h3>
+            ${reconciliations.length ? `
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>ID</th><th>Period</th><th>Expected</th><th>Statement</th><th>Difference</th><th>Status</th><th>Action</th></tr></thead>
+                  <tbody>
+                    ${reconciliations.map(function(item) {
+                      return `<tr><td>${escapeHtml(item.reconciliationId)}</td><td>${escapeHtml(item.periodStart + ' to ' + item.periodEnd)}</td><td>${formatMoney(item.expectedClosingBalance)}</td><td>${formatMoney(item.statementClosingBalance)}</td><td>${formatMoney(item.difference)}</td><td><span class="badge">${escapeHtml(item.status)}</span></td><td>${item.status === 'Ready to Publish' ? `<button class="action secondary" type="button" data-publish-reconciliation="${escapeAttr(item.reconciliationId)}">Publish</button>` : ''}</td></tr>`;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            ` : '<p class="muted">No reconciliations prepared yet.</p>'}
+          </section>
+        `;
+      }
+
+      function submitCsvPreview(event) {
+        event.preventDefault();
+        const accountId = event.target.querySelector('[name="Account ID"]').value;
+        const file = event.target.querySelector('input[type="file"]').files[0];
+        if (!file) {
+          alert('Choose a CSV file first.');
+          return;
+        }
+
+        readFileAsBase64(file, function(base64) {
+          google.script.run
+            .withSuccessHandler(function(preview) {
+              renderCsvPreview(preview, accountId);
+            })
+            .withFailureHandler(function(error) {
+              alert(error.message || String(error));
+            })
+            .previewBankCsv({
+              fileName: file.name,
+              base64: base64
+            });
+        });
+      }
+
+      function renderCsvPreview(preview, accountId) {
+        const fields = [
+          { key: 'date', label: 'Date column' },
+          { key: 'description', label: 'Description column' },
+          { key: 'moneyIn', label: 'Money-in column' },
+          { key: 'moneyOut', label: 'Money-out column' },
+          { key: 'amount', label: 'Amount column' },
+          { key: 'balance', label: 'Balance column' },
+          { key: 'reference', label: 'Reference column' }
+        ];
+        const options = [{ value: '', label: 'Not used' }].concat(preview.headers.map(function(header) {
+          return { value: header, label: header };
+        }));
+
+        document.getElementById('csvPreview').innerHTML = `
+          <hr>
+          <h3>CSV Preview</h3>
+          <p class="muted">${escapeHtml(preview.rowCount)} rows found. Confirm the columns before importing.</p>
+          <form id="csvImportForm" class="form-grid">
+            ${fields.map(function(field) {
+              return selectField(field.label, field.key, options.map(function(option) {
+                return {
+                  value: option.value,
+                  label: option.label,
+                  selected: option.value === preview.suggestedMapping[field.key]
+                };
+              }));
+            }).join('')}
+            <div style="grid-column: 1 / -1;"><button class="action" type="submit">Import CSV Lines</button></div>
+          </form>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>${preview.headers.map(function(header) { return `<th>${escapeHtml(header)}</th>`; }).join('')}</tr></thead>
+              <tbody>
+                ${preview.previewRows.map(function(row) {
+                  return `<tr>${row.map(function(value) { return `<td>${escapeHtml(value)}</td>`; }).join('')}</tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        document.getElementById('csvImportForm').addEventListener('submit', function(event) {
+          event.preventDefault();
+          const mapping = readFormValues(event.target);
+          google.script.run
+            .withSuccessHandler(function(result) {
+              alert('Imported ' + result.rowsImported + ' bank lines' + (result.duplicateWarning ? ' with duplicate warning.' : '.'));
+              renderBankStatements();
+            })
+            .withFailureHandler(function(error) {
+              alert(error.message || String(error));
+            })
+            .importBankCsv({
+              accountId: accountId,
+              fileName: preview.fileName,
+              rawBase64: preview.rawBase64,
+              mapping: mapping
+            });
+        });
+      }
+
+      function submitPdfUpload(event) {
+        event.preventDefault();
+        const file = event.target.querySelector('input[type="file"]').files[0];
+        if (!file) {
+          alert('Choose a PDF file first.');
+          return;
+        }
+        readFileAsBase64(file, function(base64) {
+          google.script.run
+            .withSuccessHandler(function(result) {
+              alert('PDF stored: ' + result.fileName);
+              renderBankStatements();
+            })
+            .withFailureHandler(function(error) {
+              alert(error.message || String(error));
+            })
+            .uploadBankStatementPdf({
+              fileName: file.name,
+              base64: base64
+            });
+        });
+      }
+
+      function submitManualBankLine(event) {
+        event.preventDefault();
+        google.script.run
+          .withSuccessHandler(function(result) {
+            alert('Bank line saved: ' + result.bankLineId + (result.duplicateWarning ? ' with duplicate warning.' : '.'));
+            renderBankStatements();
+          })
+          .withFailureHandler(function(error) {
+            alert(error.message || String(error));
+          })
+          .addManualBankStatementLine(readFormValues(event.target));
+      }
+
+      function renderBankImports(imports) {
+        return `
+          <section class="panel">
+            <h3>Recent CSV Imports</h3>
+            ${imports.length ? `
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Import ID</th><th>File</th><th>Status</th><th>Rows</th><th>Warning</th></tr></thead>
+                  <tbody>
+                    ${imports.map(function(item) {
+                      return `<tr><td>${escapeHtml(item.importId)}</td><td>${escapeHtml(item.fileName)}</td><td>${escapeHtml(item.importStatus)}</td><td>${escapeHtml(item.rowsImported)}</td><td>${escapeHtml(item.duplicateWarning)}</td></tr>`;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            ` : '<p class="muted">No CSV imports yet.</p>'}
+          </section>
+        `;
+      }
+
+      function renderBankLines(lines) {
+        return `
+          <section class="panel">
+            <h3>Recent Bank Lines</h3>
+            ${lines.length ? `
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Description</th><th>Money In</th><th>Money Out</th><th>Balance</th><th>Status</th></tr></thead>
+                  <tbody>
+                    ${lines.map(function(line) {
+                      return `<tr><td>${escapeHtml(line.statementDate)}</td><td>${escapeHtml(line.description)}<br><span class="small muted">${escapeHtml(line.referenceNumber || '')}</span></td><td>${formatMoney(line.moneyIn)}</td><td>${formatMoney(line.moneyOut)}</td><td>${formatMoney(line.runningBalance)}</td><td><span class="badge">${escapeHtml(line.status)}</span></td></tr>`;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            ` : '<p class="muted">No bank lines yet.</p>'}
+          </section>
+        `;
+      }
+
+      function drawAdministration(data) {
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>Administration</h2>
+            <p class="muted">Manage app access here instead of editing the Users sheet.</p>
+          </section>
+          <section class="panel">
+            <h3>Maintenance</h3>
+            <div class="action-row">
+              <button class="action secondary" type="button" id="backupNowButton">Back Up Data Now</button>
+              <button class="action secondary" type="button" id="backupTriggerButton">Set Monthly Backup</button>
+              <button class="action secondary" type="button" id="demoDataButton">Add Demo Test Data</button>
+            </div>
+          </section>
+          <section class="panel">
+            <h3>Add or Update User</h3>
+            <form id="userAccessForm" class="form-grid">
+              <input type="hidden" name="User ID" value="">
+              ${inputField('Email', 'Email', '')}
+              ${inputField('Full Name', 'Full Name', '')}
+              ${selectField('Link to member', 'Member ID', [{ value: '', label: 'No member link' }].concat(data.members.map(function(member) {
+                return { value: member.memberId, label: member.fullName + ' - ' + member.emailAddress };
+              })))}
+              ${selectField('Status', 'Status', [
+                { value: 'Active', label: 'Active' },
+                { value: 'Inactive', label: 'Inactive' }
+              ])}
+              <div style="grid-column: 1 / -1;">
+                <label>Roles</label>
+                <div class="check-list">
+                  ${data.roles.map(function(role) {
+                    return `<label class="check-item"><input type="checkbox" name="Roles" value="${escapeAttr(role)}" ${role === 'Member' ? 'checked' : ''}><span>${escapeHtml(role)}</span></label>`;
+                  }).join('')}
+                </div>
+              </div>
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Save User Access</button></div>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Import Members</h3>
+            <p class="muted">Paste rows copied from Excel or upload a CSV file. Members can update extra details later from My Profile.</p>
+            <form id="memberImportPreviewForm" class="form-grid">
+              ${fileField('CSV file', 'Member CSV File', '.csv,text/csv', 'Optional. CSV with Full Name and Email Address columns.')}
+              <div style="grid-column: 1 / -1;">${textAreaField('Paste rows from Excel', 'Pasted Rows', '')}</div>
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Preview Members</button></div>
+            </form>
+            <div id="memberImportPreview"></div>
+          </section>
+          <section class="panel">
+            <h3>Current Users</h3>
+            ${renderUsersTable(data.users)}
+          </section>
+        `;
+
+        document.getElementById('userAccessForm').addEventListener('submit', submitUserAccess);
+        document.getElementById('memberImportPreviewForm').addEventListener('submit', previewMemberImportFromUi);
+        document.getElementById('backupNowButton').addEventListener('click', runBackupNow);
+        document.getElementById('backupTriggerButton').addEventListener('click', createBackupTrigger);
+        document.getElementById('demoDataButton').addEventListener('click', seedDemoDataFromUi);
+        document.querySelectorAll('[data-edit-user]').forEach(function(button) {
+          button.addEventListener('click', editUserAccess);
+        });
+        document.querySelectorAll('[data-deactivate-user]').forEach(function(button) {
+          button.addEventListener('click', deactivateUserAccessFromUi);
+        });
+      }
+
+      function renderUsersTable(users) {
+        if (!users.length) {
+          return '<p class="muted">No users have been added yet.</p>';
+        }
+
+        return `
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Email</th><th>Roles</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                ${users.map(function(user) {
+                  return `
+                    <tr>
+                      <td>${escapeHtml(user.fullName)}</td>
+                      <td>${escapeHtml(user.email)}</td>
+                      <td>${escapeHtml(user.roles)}</td>
+                      <td><span class="badge">${escapeHtml(user.status)}</span></td>
+                      <td>
+                        <button class="action secondary" type="button" data-edit-user="${escapeAttr(user.userId)}">Edit</button>
+                        <br><br>
+                        <button class="action danger" type="button" data-deactivate-user="${escapeAttr(user.userId)}">Deactivate</button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function submitUserAccess(event) {
+        event.preventDefault();
+        const record = readFormValues(event.target);
+        record.Roles = Array.from(event.target.querySelectorAll('input[name="Roles"]:checked')).map(function(input) {
+          return input.value;
+        }).join(', ');
+
+        google.script.run
+          .withSuccessHandler(function(result) {
+            alert('User access saved: ' + result.userId);
+            renderAdministration();
+          })
+          .withFailureHandler(function(error) {
+            alert(error.message || String(error));
+          })
+          .saveUserAccess(record);
+      }
+
+      function editUserAccess(event) {
+        const userId = event.target.dataset.editUser;
+        const user = state.administration.users.find(function(item) {
+          return item.userId === userId;
+        });
+        if (!user) {
+          return;
+        }
+
+        const form = document.getElementById('userAccessForm');
+        form.querySelector('[name="User ID"]').value = user.userId;
+        form.querySelector('[name="Email"]').value = user.email;
+        form.querySelector('[name="Full Name"]').value = user.fullName;
+        form.querySelector('[name="Member ID"]').value = user.memberId || '';
+        form.querySelector('[name="Status"]').value = user.status || 'Active';
+        const roles = user.roles.split(',').map(function(role) { return role.trim(); });
+        form.querySelectorAll('input[name="Roles"]').forEach(function(input) {
+          input.checked = roles.indexOf(input.value) !== -1;
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function deactivateUserAccessFromUi(event) {
+        const userId = event.target.dataset.deactivateUser;
+        if (!confirm('Deactivate this user access?')) {
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function() {
+            renderAdministration();
+          })
+          .withFailureHandler(function(error) {
+            alert(error.message || String(error));
+          })
+          .deactivateUserAccess(userId);
+      }
+
+      function previewMemberImportFromUi(event) {
+        event.preventDefault();
+        const file = event.target.querySelector('input[type="file"]').files[0];
+        const pastedText = event.target.querySelector('textarea[name="Pasted Rows"]').value;
+
+        if (file) {
+          readFileAsBase64(file, function(base64) {
+            callMemberImportPreview({ base64: base64 });
+          });
+          return;
+        }
+        callMemberImportPreview({ pastedText: pastedText });
+      }
+
+      function callMemberImportPreview(payload) {
+        showBusy('Preparing member preview...');
+        google.script.run
+          .withSuccessHandler(function(result) {
+            hideBusy();
+            renderMemberImportPreview(result);
+          })
+          .withFailureHandler(function(error) {
+            showMessage(error.message || String(error));
+          })
+          .previewMemberImport(payload);
+      }
+
+      function renderMemberImportPreview(result) {
+        document.getElementById('memberImportPreview').innerHTML = `
+          <hr>
+          <h3>Preview</h3>
+          <p class="muted">${escapeHtml(result.rowCount)} member rows found. First 10 shown below.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Full Name</th><th>Email</th><th>Phone</th><th>City</th><th>Country</th></tr></thead>
+              <tbody>
+                ${result.previewRecords.map(function(record) {
+                  return `<tr><td>${escapeHtml(record['Full Name'])}</td><td>${escapeHtml(record['Email Address'])}</td><td>${escapeHtml(record['Phone Number'])}</td><td>${escapeHtml(record.City)}</td><td>${escapeHtml(record.Country)}</td></tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+          <button class="action" type="button" id="importMembersButton">Import Members</button>
+        `;
+
+        document.getElementById('importMembersButton').addEventListener('click', function() {
+          showBusy('Importing members...');
+          google.script.run
+            .withSuccessHandler(function(importResult) {
+              showMessage('Imported ' + importResult.imported + ' members. Skipped ' + importResult.skipped + '.');
+              renderAdministration();
+            })
+            .withFailureHandler(function(error) {
+              showMessage(error.message || String(error));
+            })
+            .importMembers({ rawRowsJson: result.rawRowsJson });
+        });
+      }
+
+      function runBackupNow() {
+        showBusy('Creating backup...');
+        google.script.run
+          .withSuccessHandler(function(result) {
+            showMessage('Backup created: ' + result.fileName);
+            renderAdministration();
+          })
+          .withFailureHandler(function(error) {
+            showMessage(error.message || String(error));
+          })
+          .backupDataSpreadsheet();
+      }
+
+      function createBackupTrigger() {
+        showBusy('Setting monthly backup...');
+        google.script.run
+          .withSuccessHandler(function(result) {
+            showMessage(result.message);
+            renderAdministration();
+          })
+          .withFailureHandler(function(error) {
+            showMessage(error.message || String(error));
+          })
+          .createMonthlyBackupTrigger();
+      }
+
+      function seedDemoDataFromUi() {
+        if (!confirm('Add demo accounts and fund for testing?')) {
+          return;
+        }
+        showBusy('Adding demo data...');
+        google.script.run
+          .withSuccessHandler(function(result) {
+            showMessage('Demo data ready.');
+            renderAdministration();
+          })
+          .withFailureHandler(function(error) {
+            showMessage(error.message || String(error));
+          })
+          .seedDemoData();
+      }
+
+      function renderMyProfile() {
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>My Profile</h2>
+            <p class="muted">Loading your member details...</p>
+          </section>
+        `;
+
+        google.script.run
+          .withSuccessHandler(function(data) {
+            state.myProfile = data;
+            drawMyProfile(data);
+          })
+          .withFailureHandler(function(error) {
+            renderInlineError('My Profile', error.message || String(error));
+          })
+          .getMyProfile();
+      }
+
+      function drawMyProfile(data) {
+        const profile = data.profile;
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>My Profile</h2>
+            <p class="muted">Only you and authorised administrators can see your full record.</p>
+            <div class="grid">
+              ${profileLine('Full Name', profile.fullName)}
+              ${profileLine('Preferred Name', profile.preferredName)}
+              ${profileLine('Phone Number', profile.phoneNumber)}
+              ${profileLine('Email Address', profile.emailAddress)}
+              ${profileLine('Birthday Day/Month', profile.dateOfBirth)}
+              ${profileLine('City', profile.city)}
+              ${profileLine('Country', profile.country)}
+              ${profileLine('Occupation', profile.occupation)}
+              ${profileLine('Membership Status', profile.membershipStatus)}
+            </div>
+          </section>
+
+          <section class="panel">
+            <h3>Request an Update</h3>
+            <form id="profileUpdateForm" class="form-grid">
+              ${inputField('Preferred Name', 'Preferred Name', profile.preferredName)}
+              ${inputField('Phone Number', 'Phone Number', profile.phoneNumber)}
+              ${inputField('Email Address', 'Email Address', profile.emailAddress)}
+              ${birthdayField('Birthday Day/Month', 'Date of Birth', profile.dateOfBirth)}
+              ${inputField('City', 'City', profile.city)}
+              ${inputField('State', 'State', profile.state)}
+              ${inputField('Country', 'Country', profile.country)}
+              ${inputField('Occupation', 'Occupation', profile.occupation)}
+              ${inputField('Employer or Business', 'Employer or Business', profile.employerOrBusiness)}
+              <div style="grid-column: 1 / -1;">
+                ${textAreaField('Residential Address', 'Residential Address', profile.residentialAddress)}
+              </div>
+              <div style="grid-column: 1 / -1;">
+                <button class="action" type="submit">Send Update Request</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel">
+            <h3>Directory Privacy</h3>
+            <p class="muted">Choose what other members can see in the member directory.</p>
+            <form id="privacyForm" class="check-list">
+              ${privacyCheck('Show Name', 'Show my name', data.privacy['Show Name'])}
+              ${privacyCheck('Show City Country', 'Show my city and country', data.privacy['Show City Country'])}
+              ${privacyCheck('Show Occupation', 'Show my occupation', data.privacy['Show Occupation'])}
+              ${privacyCheck('Show Phone', 'Show my phone number', data.privacy['Show Phone'])}
+              ${privacyCheck('Show Email', 'Show my email address', data.privacy['Show Email'])}
+              ${privacyCheck('Show Photo', 'Show my profile photo', data.privacy['Show Photo'])}
+              <button class="action" type="submit">Save Privacy Settings</button>
+            </form>
+          </section>
+
+          ${renderPendingRequests(data.pendingRequests)}
+        `;
+
+        document.getElementById('profileUpdateForm').addEventListener('submit', submitProfileUpdate);
+        document.getElementById('privacyForm').addEventListener('submit', submitPrivacySettings);
+      }
+
+      function renderMembers() {
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>Members</h2>
+            <p class="muted">Loading the member directory...</p>
+          </section>
+        `;
+
+        google.script.run
+          .withSuccessHandler(function(directory) {
+            state.directory = directory;
+            drawMembers(directory);
+          })
+          .withFailureHandler(function(error) {
+            renderInlineError('Members', error.message || String(error));
+          })
+          .getMemberDirectory();
+      }
+
+      function renderReports() {
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>Reports</h2>
+            <p class="muted">Loading reports...</p>
+          </section>
+        `;
+
+        google.script.run
+          .withSuccessHandler(function(stage6) {
+            drawReports(stage6);
+          })
+          .withFailureHandler(function(error) {
+            renderInlineError('Reports', error.message || String(error));
+          })
+          .getStage6Data();
+      }
+
+      function drawReports(stage6) {
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>Reports</h2>
+            <p class="muted">Simple financial summaries for meetings, email, and WhatsApp sharing.</p>
+          </section>
+          <section class="grid">
+            ${metricCard('Money In This Month', formatMoney(stage6.reportSummaries.monthly.moneyIn))}
+            ${metricCard('Money Out This Month', formatMoney(stage6.reportSummaries.monthly.moneyOut))}
+            ${metricCard('Money In This Year', formatMoney(stage6.reportSummaries.annual.moneyIn))}
+            ${metricCard('Money Out This Year', formatMoney(stage6.reportSummaries.annual.moneyOut))}
+          </section>
+          <section class="panel">
+            <h3>Generate Report</h3>
+            <form id="reportForm" class="form-grid">
+              ${selectField('Report type', 'Report Type', [
+                { value: 'Income and Expenditure Statement', label: 'Income and Expenditure Statement' },
+                { value: 'Statement of Financial Position', label: 'Statement of Financial Position' },
+                { value: 'Monthly Financial Summary', label: 'Monthly Financial Summary' },
+                { value: 'Quarterly Financial Summary', label: 'Quarterly Financial Summary' },
+                { value: 'Annual Financial Summary', label: 'Annual Financial Summary' },
+                { value: 'Transaction Register', label: 'Transaction Register' }
+              ])}
+              ${dateInputField('Start Date', 'Start Date', todayDisplay())}
+              ${dateInputField('End Date', 'End Date', todayDisplay())}
+              <p class="muted small" style="grid-column: 1 / -1;">For Statement of Financial Position, use End Date as the "as at" date.</p>
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">View Report</button></div>
+            </form>
+          </section>
+          <section id="reportOutput"></section>
+        `;
+
+        document.getElementById('reportForm').addEventListener('submit', function(event) {
+          event.preventDefault();
+          const values = readFormValues(event.target);
+          google.script.run
+            .withSuccessHandler(drawReportOutput)
+            .withFailureHandler(function(error) {
+              alert(error.message || String(error));
+            })
+            .getReportData(values['Report Type'], values['Start Date'], values['End Date']);
+        });
+      }
+
+      function drawReportOutput(report) {
+        if (report.reportType === 'Income and Expenditure Statement') {
+          drawIncomeExpenditureOutput(report);
+          return;
+        }
+        if (report.reportType === 'Statement of Financial Position') {
+          drawFinancialPositionOutput(report);
+          return;
+        }
+
+        document.getElementById('reportOutput').innerHTML = `
+          <section class="panel">
+            <h3>${escapeHtml(report.reportType)}</h3>
+            <p class="muted">${escapeHtml(report.periodLabel)} | Generated ${escapeHtml(formatShortDateTime(report.generatedAt))}</p>
+            <div class="grid">
+              ${metricCard('Money In', formatMoney(report.summary.moneyIn))}
+              ${metricCard('Money Out', formatMoney(report.summary.moneyOut))}
+              ${metricCard('Net Movement', formatMoney(report.summary.netMovement))}
+              ${metricCard('Records', report.summary.count)}
+            </div>
+            ${renderTransactionTable(report.transactions, false)}
+          </section>
+        `;
+      }
+
+      function drawIncomeExpenditureOutput(report) {
+        document.getElementById('reportOutput').innerHTML = `
+          <section class="panel">
+            <h3>Income and Expenditure Statement</h3>
+            <p class="muted">${escapeHtml(report.periodLabel)} | Generated ${escapeHtml(formatShortDateTime(report.generatedAt))}</p>
+            <div class="grid">
+              ${metricCard('Total Income', formatMoney(report.summary.totalIncome))}
+              ${metricCard('Total Expenditure', formatMoney(report.summary.totalExpenditure))}
+              ${metricCard('Surplus / Deficit', formatMoney(report.summary.surplusDeficit))}
+            </div>
+          </section>
+          <section class="panel">
+            <h3>Income</h3>
+            ${renderAmountRows(report.incomeRows, 'No income records for this period.')}
+          </section>
+          <section class="panel">
+            <h3>Expenditure</h3>
+            ${renderAmountRows(report.expenditureRows, 'No expenditure records for this period.')}
+          </section>
+        `;
+      }
+
+      function drawFinancialPositionOutput(report) {
+        document.getElementById('reportOutput').innerHTML = `
+          <section class="panel">
+            <h3>Statement of Financial Position</h3>
+            <p class="muted">${escapeHtml(report.periodLabel)} | Generated ${escapeHtml(formatShortDateTime(report.generatedAt))}</p>
+            <div class="grid">
+              ${metricCard('Bank Balance', formatMoney(report.summary.bankBalance))}
+              ${metricCard('Cash at Hand', formatMoney(report.summary.cashAtHand))}
+              ${metricCard('Total Funds Available', formatMoney(report.summary.totalFundsAvailable))}
+              ${metricCard('Represented Funds', formatMoney(report.summary.representedFundsTotal))}
+            </div>
+          </section>
+          <section class="panel">
+            <h3>Funds Available</h3>
+            ${renderAmountRows(report.accountRows, 'No active accounts found.')}
+          </section>
+          <section class="panel">
+            <h3>Represented By</h3>
+            ${renderAmountRows(report.fundRows, 'No fund/project balances found.')}
+          </section>
+        `;
+      }
+
+      function renderAmountRows(rows, emptyText) {
+        if (!rows || !rows.length) {
+          return `<p class="muted">${escapeHtml(emptyText)}</p>`;
+        }
+
+        return `
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Description</th><th>Amount</th></tr></thead>
+              <tbody>
+                ${rows.map(function(row) {
+                  return `<tr><td>${escapeHtml(row.name)}</td><td>${formatMoney(row.amount)}</td></tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function drawMembers(directory) {
+        const canAdminMembers = state.bootstrap.user.roles.includes('Membership Administrator') || state.bootstrap.user.roles.includes('System Administrator');
+        const adminPanel = canAdminMembers ? renderMembershipAdminPanel() : '';
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>Members</h2>
+            <p class="muted">The directory only shows details each member has agreed to share.</p>
+          </section>
+          <section class="directory-list">
+            ${directory.length ? directory.map(renderDirectoryCard).join('') : '<div class="panel">No members are visible in the directory yet.</div>'}
+          </section>
+          ${adminPanel}
+        `;
+
+        if (canAdminMembers) {
+          document.getElementById('addMemberForm').addEventListener('submit', submitAddMember);
+          loadPendingRequests();
+        }
+      }
+
+      function renderMembershipAdminPanel() {
+        return `
+          <section class="panel">
+            <h3>Add Member</h3>
+            <form id="addMemberForm" class="form-grid">
+              ${inputField('Full Name', 'Full Name', '')}
+              ${inputField('Preferred Name', 'Preferred Name', '')}
+              ${inputField('Email Address', 'Email Address', '')}
+              ${birthdayField('Birthday Day/Month', 'Date of Birth', '')}
+              ${inputField('Phone Number', 'Phone Number', '')}
+              ${inputField('City', 'City', '')}
+              ${inputField('State', 'State', '')}
+              ${inputField('Country', 'Country', 'Nigeria')}
+              ${inputField('Occupation', 'Occupation', '')}
+              <div style="grid-column: 1 / -1;">
+                <button class="action" type="submit">Add Member</button>
+              </div>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Profile Update Requests</h3>
+            <div id="pendingRequests" class="request-list">
+              <p class="muted">Loading requests...</p>
+            </div>
+          </section>
+        `;
+      }
+
+      function renderDirectoryCard(member) {
+        return `
+          <article class="directory-card">
+            <div class="directory-name">${escapeHtml(member.name || 'Name hidden')}</div>
+            ${member.cityCountry ? `<div>${escapeHtml(member.cityCountry)}</div>` : ''}
+            ${member.occupation ? `<div>${escapeHtml(member.occupation)}</div>` : ''}
+            ${member.phoneNumber ? `<div class="small">Phone: ${escapeHtml(member.phoneNumber)}</div>` : ''}
+            ${member.emailAddress ? `<div class="small">Email: ${escapeHtml(member.emailAddress)}</div>` : ''}
+          </article>
+        `;
+      }
+
+      function loadPendingRequests() {
+        google.script.run
+          .withSuccessHandler(function(requests) {
+            state.pendingRequests = requests;
+            document.getElementById('pendingRequests').innerHTML = requests.length
+              ? requests.map(renderRequestCard).join('')
+              : '<p class="muted">No pending profile update requests.</p>';
+            document.querySelectorAll('[data-review-request]').forEach(function(button) {
+              button.addEventListener('click', reviewRequest);
+            });
+          })
+          .withFailureHandler(function(error) {
+            document.getElementById('pendingRequests').innerHTML = `<p class="muted">${escapeHtml(error.message || String(error))}</p>`;
+          })
+          .getPendingMemberUpdateRequests();
+      }
+
+      function renderRequestCard(request) {
+        return `
+          <article class="request-card">
+            <div><strong>${escapeHtml(request.memberId)}</strong></div>
+            <div class="small">Requested by ${escapeHtml(request.requestedByEmail)}</div>
+            <pre class="small">${escapeHtml(JSON.stringify(request.requestedChanges, null, 2))}</pre>
+            <div class="action-row">
+              <button class="action" type="button" data-review-request="${escapeHtml(request.requestId)}" data-decision="Approved">Approve</button>
+              <button class="action danger" type="button" data-review-request="${escapeHtml(request.requestId)}" data-decision="Rejected">Reject</button>
+            </div>
+          </article>
+        `;
+      }
+
+      function submitProfileUpdate(event) {
+        event.preventDefault();
+        const changes = readFormValues(event.target);
+        google.script.run
+          .withSuccessHandler(function(result) {
+            alert(result.message);
+            renderMyProfile();
+          })
+          .withFailureHandler(function(error) {
+            alert(error.message || String(error));
+          })
+          .requestMyProfileUpdate(changes);
+      }
+
+      function submitPrivacySettings(event) {
+        event.preventDefault();
+        const settings = {};
+        event.target.querySelectorAll('input[type="checkbox"]').forEach(function(input) {
+          settings[input.name] = input.checked ? 'Yes' : 'No';
+        });
+        google.script.run
+          .withSuccessHandler(function(result) {
+            alert(result.message);
+            renderMyProfile();
+          })
+          .withFailureHandler(function(error) {
+            alert(error.message || String(error));
+          })
+          .updateMyPrivacySettings(settings);
+      }
+
+      function submitAddMember(event) {
+        event.preventDefault();
+        const record = readFormValues(event.target);
+        google.script.run
+          .withSuccessHandler(function(result) {
+            alert('Member added: ' + result.memberId);
+            renderMembers();
+          })
+          .withFailureHandler(function(error) {
+            alert(error.message || String(error));
+          })
+          .addMember(record);
+      }
+
+      function reviewRequest(event) {
+        const requestId = event.target.dataset.reviewRequest;
+        const decision = event.target.dataset.decision;
+        if (!confirm(decision + ' this profile update request?')) {
+          return;
+        }
+        google.script.run
+          .withSuccessHandler(function() {
+            loadPendingRequests();
+          })
+          .withFailureHandler(function(error) {
+            alert(error.message || String(error));
+          })
+          .reviewMemberUpdateRequest(requestId, decision);
+      }
+
+      function readFormValues(form) {
+        const values = {};
+        form.querySelectorAll('input, textarea, select').forEach(function(input) {
+          values[input.name] = input.value;
+        });
+        return values;
+      }
+
+      function profileLine(label, value) {
+        return `
+          <div class="metric">
+            <div class="metric-label">${escapeHtml(label)}</div>
+            <div class="metric-value" style="font-size: 17px;">${escapeHtml(value || '--')}</div>
+          </div>
+        `;
+      }
+
+      function inputField(label, name, value) {
+        return `
+          <div>
+            <label for="${escapeAttr(name)}">${escapeHtml(label)}</label>
+            <input id="${escapeAttr(name)}" name="${escapeAttr(name)}" value="${escapeAttr(value)}">
+          </div>
+        `;
+      }
+
+      function dateInputField(label, name, value) {
+        const id = escapeAttr(name);
+        return `
+          <div>
+            <label for="${id}">${escapeHtml(label)}</label>
+            <input id="${id}" name="${id}" value="${escapeAttr(value)}" placeholder="dd-mm-yyyy" inputmode="numeric" pattern="\\d{1,2}-\\d{1,2}-\\d{4}">
+            <input type="date" data-calendar-for="${id}" aria-label="${escapeAttr(label)} calendar">
+            <p class="muted small">Enter as dd-mm-yyyy or choose from the calendar.</p>
+          </div>
+        `;
+      }
+
+      function selectField(label, name, options) {
+        return `
+          <div>
+            <label for="${escapeAttr(name)}">${escapeHtml(label)}</label>
+            <select id="${escapeAttr(name)}" name="${escapeAttr(name)}">
+              ${options.map(function(option) {
+                return `<option value="${escapeAttr(option.value)}" ${option.selected ? 'selected' : ''}>${escapeHtml(option.label)}</option>`;
+              }).join('')}
+            </select>
+          </div>
+        `;
+      }
+
+      function fileField(label, name, accept, helpText) {
+        return `
+          <div>
+            <label for="${escapeAttr(name)}">${escapeHtml(label)}</label>
+            <input type="file" id="${escapeAttr(name)}" name="${escapeAttr(name)}" accept="${escapeAttr(accept || 'application/pdf,image/jpeg,image/png')}">
+            <p class="muted small">${escapeHtml(helpText || 'Optional. PDF, JPG, or PNG up to 5 MB.')}</p>
+          </div>
+        `;
+      }
+
+      function birthdayField(label, name, value) {
+        return `
+          <div>
+            <label for="${escapeAttr(name)}">${escapeHtml(label)}</label>
+            <input id="${escapeAttr(name)}" name="${escapeAttr(name)}" value="${escapeAttr(value)}" inputmode="numeric" placeholder="DD/MM">
+            <p class="muted small">Use day and month only, for example 14/08. Do not enter the year.</p>
+          </div>
+        `;
+      }
+
+      function textAreaField(label, name, value) {
+        return `
+          <label for="${escapeAttr(name)}">${escapeHtml(label)}</label>
+          <textarea id="${escapeAttr(name)}" name="${escapeAttr(name)}">${escapeHtml(value)}</textarea>
+        `;
+      }
+
+      function privacyCheck(name, label, value) {
+        return `
+          <label class="check-item">
+            <input type="checkbox" name="${escapeAttr(name)}" ${value === 'Yes' ? 'checked' : ''}>
+            <span>${escapeHtml(label)}</span>
+          </label>
+        `;
+      }
+
+      function renderPendingRequests(requests) {
+        if (!requests || !requests.length) {
+          return '';
+        }
+
+        return `
+          <section class="panel">
+            <h3>Pending Requests</h3>
+            <p class="muted">Your request is waiting for review by the Membership Administrator.</p>
+            <div class="request-list">
+              ${requests.map(function(request) {
+                return `<div class="request-card"><strong>${escapeHtml(request.requestId)}</strong><pre class="small">${escapeHtml(JSON.stringify(request.requestedChanges, null, 2))}</pre></div>`;
+              }).join('')}
+            </div>
+          </section>
+        `;
+      }
+
+      function renderInlineError(title, message) {
+        document.getElementById('app').innerHTML = `
+          <section class="panel message error">
+            <h2>${escapeHtml(title)}</h2>
+            <p>${escapeHtml(message)}</p>
+          </section>
+        `;
+      }
+
+      function renderError(message) {
+        document.getElementById('statusBar').innerHTML = '<span class="badge warn">Error</span>';
+        document.getElementById('app').innerHTML = `
+          <section class="panel message error">
+            <h2>Something went wrong</h2>
+            <p>${escapeHtml(message)}</p>
+          </section>
+        `;
+      }
+
+      function escapeHtml(value) {
+        return String(value || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      function escapeAttr(value) {
+        return escapeHtml(value);
+      }
+
+      function metricCard(label, value) {
+        return `
+          <div class="metric">
+            <div class="metric-label">${escapeHtml(label)}</div>
+            <div class="metric-value">${escapeHtml(value)}</div>
+          </div>
+        `;
+      }
+
+      function accountOption(account) {
+        return { value: account.accountId, label: account.accountName + ' - ' + account.accountType };
+      }
+
+      function categoryOption(category) {
+        return { value: category.categoryId, label: category.categoryName };
+      }
+
+      function fundOption(fund) {
+        return { value: fund.fundId, label: fund.fundName };
+      }
+
+      function formatMoney(value) {
+        const number = Number(value || 0);
+        return number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+
+      function todayIso() {
+        return new Date().toISOString().slice(0, 10);
+      }
+
+      function todayDisplay() {
+        return isoToDisplayDate(todayIso());
+      }
+
+      function isoToDisplayDate(value) {
+        const parts = String(value || '').split('-');
+        if (parts.length !== 3) {
+          return value || '';
+        }
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+
+      function displayToIsoDate(value) {
+        const parts = String(value || '').split('-');
+        if (parts.length !== 3) {
+          return '';
+        }
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+
+      function formatShortDateTime(value) {
+        if (!value) {
+          return '--';
+        }
+        return String(value).slice(0, 16).replace('T', ' ');
+      }
+
+      function readFileAsBase64(file, callback) {
+        if (file.size > 10 * 1024 * 1024) {
+          alert('File is too large. Maximum size is 10 MB.');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = function() {
+          callback(String(reader.result).split(',')[1]);
+        };
+        reader.readAsDataURL(file);
+      }
+
+      loadApp();
+    </script>
+  </body>
+</html>
