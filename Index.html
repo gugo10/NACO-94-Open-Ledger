@@ -2089,7 +2089,10 @@
               ${dateInputField('Start Date', 'Start Date', todayDisplay())}
               ${dateInputField('End Date', 'End Date', todayDisplay())}
               <p class="muted small" style="grid-column: 1 / -1;">For Statement of Financial Position, use End Date as the "as at" date.</p>
-              <div style="grid-column: 1 / -1;"><button class="action" type="submit">View Report</button></div>
+              <div class="action-row" style="grid-column: 1 / -1;">
+                <button class="action" type="submit">View Report</button>
+                <button class="action secondary" type="button" id="exportReportButton">Export CSV</button>
+              </div>
             </form>
           </section>
           <section id="reportOutput"></section>
@@ -2104,6 +2107,19 @@
               alert(error.message || String(error));
             })
             .getReportData(values['Report Type'], values['Start Date'], values['End Date']);
+        });
+
+        document.getElementById('exportReportButton').addEventListener('click', function() {
+          const values = readFormValues(document.getElementById('reportForm'));
+          google.script.run
+            .withSuccessHandler(function(csv) {
+              downloadCsv(csv, makeReportFileName(values['Report Type']));
+              showMessage('Report CSV exported.');
+            })
+            .withFailureHandler(function(error) {
+              alert(error.message || String(error));
+            })
+            .exportReportCsv(values['Report Type'], values['Start Date'], values['End Date']);
         });
       }
 
@@ -2194,6 +2210,26 @@
             </table>
           </div>
         `;
+      }
+
+      function downloadCsv(csv, fileName) {
+        const blob = new Blob([csv || ''], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
+      function makeReportFileName(reportType) {
+        const safeName = String(reportType || 'report')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'report';
+        return `naco-94-${safeName}-${todayIso()}.csv`;
       }
 
       function drawMembers(directory) {

@@ -107,6 +107,18 @@ function getReportData(reportType, startDate, endDate) {
 
 function exportReportCsv(reportType, startDate, endDate) {
   var report = getReportData(reportType, startDate, endDate);
+  var rows = buildReportCsvRows_(report);
+  return rows.map(csvEscapeRow_).join('\n');
+}
+
+function buildReportCsvRows_(report) {
+  if (report.reportType === 'Income and Expenditure Statement') {
+    return buildIncomeExpenditureCsvRows_(report);
+  }
+  if (report.reportType === 'Statement of Financial Position') {
+    return buildFinancialPositionCsvRows_(report);
+  }
+
   var rows = [
     ['Report', report.reportType],
     ['Period', report.periodLabel],
@@ -122,7 +134,50 @@ function exportReportCsv(reportType, startDate, endDate) {
   report.transactions.forEach(function(txn) {
     rows.push([txn.date, txn.transactionType, txn.description, txn.amount, txn.status]);
   });
-  return rows.map(csvEscapeRow_).join('\n');
+  return rows;
+}
+
+function buildIncomeExpenditureCsvRows_(report) {
+  return [
+    ['Report', report.reportType],
+    ['Period', report.periodLabel],
+    ['Generated At', report.generatedAt],
+    [],
+    ['Summary Item', 'Amount'],
+    ['Total Income', report.summary.totalIncome],
+    ['Total Expenditure', report.summary.totalExpenditure],
+    ['Surplus / Deficit', report.summary.surplusDeficit],
+    [],
+    ['Income', 'Amount']
+  ].concat(amountRowsToCsvRows_(report.incomeRows), [
+    [],
+    ['Expenditure', 'Amount']
+  ], amountRowsToCsvRows_(report.expenditureRows));
+}
+
+function buildFinancialPositionCsvRows_(report) {
+  return [
+    ['Report', report.reportType],
+    ['Period', report.periodLabel],
+    ['Generated At', report.generatedAt],
+    [],
+    ['Summary Item', 'Amount'],
+    ['Bank Balance', report.summary.bankBalance],
+    ['Cash at Hand', report.summary.cashAtHand],
+    ['Total Funds Available', report.summary.totalFundsAvailable],
+    ['Represented Funds', report.summary.representedFundsTotal],
+    [],
+    ['Funds Available', 'Amount']
+  ].concat(amountRowsToCsvRows_(report.accountRows), [
+    [],
+    ['Represented By', 'Amount']
+  ], amountRowsToCsvRows_(report.fundRows));
+}
+
+function amountRowsToCsvRows_(rows) {
+  return (rows || []).map(function(row) {
+    return [row.name, row.amount];
+  });
 }
 
 function getCashAccounts_() {

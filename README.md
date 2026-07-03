@@ -65,7 +65,7 @@ Included:
 - Simple report viewer
 - Member-generated Income and Expenditure Statement for any selected period
 - Member-generated Statement of Financial Position as at a selected date
-- CSV report export backend
+- CSV report export from the Reports screen
 - Manual backup button
 - Monthly backup trigger setup
 - Demo test data helper
@@ -300,7 +300,7 @@ runStage1Tests()
 Expected result:
 
 ```text
-Stage 1, Stage 2, Stage 3, Stage 4, Stage 5, Stage 6, and Stage 7 tests passed: 34
+Stage 1, Stage 2, Stage 3, Stage 4, Stage 5, Stage 6, and Stage 7 tests passed: 36
 ```
 
 These tests cover pure Stage 1 and Stage 2 logic:

@@ -18,6 +18,16 @@ Design principles:
 - Use warm, modern, mobile-first UI with plain-English labels.
 - Members should use the web app, not the raw Google Sheet or Drive folders.
 
+## User Support Needs
+
+The project owner is not tech savvy and will need extra support.
+
+- Explain actions in plain English and avoid assuming technical background.
+- Give concrete step-by-step instructions for Apps Script, Google Sheets, Drive, GitHub, and deployment tasks.
+- Say exactly what the owner should click, copy, paste, run, or verify.
+- Highlight risks, permissions, and irreversible actions before asking the owner to proceed.
+- When reporting code changes, include the practical effect for ordinary users, not only file names or technical details.
+
 ## Technology
 
 - Google Apps Script backend.
@@ -148,7 +158,7 @@ In Apps Script:
 3. Expected current message:
 
 ```text
-Stage 1, Stage 2, Stage 3, Stage 4, Stage 5, Stage 6, and Stage 7 tests passed: 34
+Stage 1, Stage 2, Stage 3, Stage 4, Stage 5, Stage 6, and Stage 7 tests passed: 36
 ```
 
 4. Deploy > Manage deployments > Edit > New version > Deploy.
@@ -194,4 +204,3 @@ runStage1Tests()
 ```
 
 Then perform manual role testing with real Google accounts.
-

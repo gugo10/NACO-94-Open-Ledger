@@ -33,7 +33,9 @@ function runStage1Tests() {
     testFormatDisplayDate_(),
     testCategoryNameCleanup_(),
     testMapImportRow_(),
-    testCleanImportedMemberRecord_()
+    testCleanImportedMemberRecord_(),
+    testBuildIncomeExpenditureCsvRows_(),
+    testBuildFinancialPositionCsvRows_()
   ];
 
   var failed = results.filter(function(result) {
@@ -380,4 +382,63 @@ function testCleanImportedMemberRecord_() {
     'Full Name': ' Ada Okoro ',
     'Email Address': ' ADA@Example.COM '
   })['Email Address'], 'ada@example.com');
+}
+
+function testBuildIncomeExpenditureCsvRows_() {
+  var rows = buildReportCsvRows_({
+    reportType: 'Income and Expenditure Statement',
+    periodLabel: '2026-07-01 to 2026-07-31',
+    generatedAt: '2026-07-03T00:00:00.000Z',
+    summary: {
+      totalIncome: 1000,
+      totalExpenditure: 250,
+      surplusDeficit: 750
+    },
+    incomeRows: [{ name: 'Dues', amount: 1000 }],
+    expenditureRows: [{ name: 'Bank Charges', amount: 250 }]
+  });
+
+  return assertEqual_('income and expenditure CSV rows include both sections', rows.slice(4), [
+    ['Summary Item', 'Amount'],
+    ['Total Income', 1000],
+    ['Total Expenditure', 250],
+    ['Surplus / Deficit', 750],
+    [],
+    ['Income', 'Amount'],
+    ['Dues', 1000],
+    [],
+    ['Expenditure', 'Amount'],
+    ['Bank Charges', 250]
+  ]);
+}
+
+function testBuildFinancialPositionCsvRows_() {
+  var rows = buildReportCsvRows_({
+    reportType: 'Statement of Financial Position',
+    periodLabel: 'As at 2026-07-31',
+    generatedAt: '2026-07-03T00:00:00.000Z',
+    summary: {
+      bankBalance: 1000,
+      cashAtHand: 200,
+      totalFundsAvailable: 1200,
+      representedFundsTotal: 1200
+    },
+    accountRows: [{ name: 'Main Bank', amount: 1000 }, { name: 'Cash Box', amount: 200 }],
+    fundRows: [{ name: 'General Association Fund', amount: 1200 }]
+  });
+
+  return assertEqual_('financial position CSV rows include accounts and funds', rows.slice(4), [
+    ['Summary Item', 'Amount'],
+    ['Bank Balance', 1000],
+    ['Cash at Hand', 200],
+    ['Total Funds Available', 1200],
+    ['Represented Funds', 1200],
+    [],
+    ['Funds Available', 'Amount'],
+    ['Main Bank', 1000],
+    ['Cash Box', 200],
+    [],
+    ['Represented By', 'Amount'],
+    ['General Association Fund', 1200]
+  ]);
 }
