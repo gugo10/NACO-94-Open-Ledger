@@ -10,35 +10,47 @@ function getStage6Data() {
     cashAccounts: getCashAccounts_(),
     recentCashCounts: getRecentCashCounts_(),
     reportSummaries: getReportSummaries_(),
-    canEnterCash: hasAnyRole(user.roles, [ROLES.FINANCE_OFFICER]),
+    canEnterCash: hasFinanceOfficerOrSystemAdmin(user.roles),
     canReviewCash: hasAnyRole(user.roles, [ROLES.PUBLISHER, ROLES.REVIEWER])
   };
 }
 
 function recordCashCount(record) {
-  var user = requireAnyRole([ROLES.FINANCE_OFFICER]);
+  var user = requireFinanceOfficerOrSystemAdmin();
   var clean = cleanCashCountRecord_(record || {});
-  validateRequired_(clean, ['Account ID', 'Count Date', 'Expected Cash Balance', 'Actual Cash Counted']);
-
-  var expected = parseMoney_(clean['Expected Cash Balance']);
-  var actual = parseMoney_(clean['Actual Cash Counted']);
-  var difference = Math.round((actual - expected) * 100) / 100;
-  if (difference !== 0 && !clean.Explanation) {
-    throw new Error('Please explain the cash difference.');
-  }
+  validateRequired_(clean, ['Account ID', 'Count Date', 'Actual Cash Counted']);
 
   var account = findRecordByValue(getSheetByName('Accounts'), 'Account ID', clean['Account ID'], false);
   if (!account || account.Status !== 'Active' || account['Account Type'] !== 'Cash at Hand') {
     throw new Error('Please choose an active Cash at Hand account.');
+  }
+  var expected = calculateCashLedgerBalanceAsAt_(account, clean['Count Date']);
+  var actual = parseMoney_(clean['Actual Cash Counted']);
+  if (actual < 0) {
+    throw new Error('Actual cash counted cannot be negative.');
+  }
+  validateOptionalDocument_(clean['Document ID']);
+  var difference = Math.round((actual - expected) * 100) / 100;
+  if (difference !== 0 && !clean.Explanation) {
+    throw new Error('Please explain the cash difference.');
   }
 
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
 
   try {
-    var cashCountId = getNextId('Cash Counts', 'CASH');
+    account = findRecordByValue(getSheetByName('Accounts'), 'Account ID', clean['Account ID'], false);
+    if (!account || account.Status !== 'Active' || account['Account Type'] !== 'Cash at Hand') {
+      throw new Error('The selected cash account is no longer active.');
+    }
+    expected = calculateCashLedgerBalanceAsAt_(account, clean['Count Date']);
+    difference = Math.round((actual - expected) * 100) / 100;
+    if (difference !== 0 && !clean.Explanation) {
+      throw new Error('The ledger balance changed while saving. Explain the cash difference and try again.');
+    }
+    var cashCountId = getNextId_('Cash Counts', 'CASH');
     var status = difference === 0 ? CASH_COUNT_STATUS.ENTERED : CASH_COUNT_STATUS.NEEDS_EXPLANATION;
-    getSheetByName('Cash Counts').appendRow([
+    appendSafeRow_(getSheetByName('Cash Counts'), [
       cashCountId,
       clean['Account ID'],
       clean['Count Date'],
@@ -54,7 +66,7 @@ function recordCashCount(record) {
       nowIso()
     ]);
 
-    writeAuditLog('Cash count entered', 'Cash Count', cashCountId, '', {
+    safeWriteAuditLog_('Cash count entered', 'Cash Count', cashCountId, '', {
       accountId: clean['Account ID'],
       expected: expected,
       actual: actual,
@@ -67,6 +79,37 @@ function recordCashCount(record) {
   }
 }
 
+function getExpectedCashBalance(accountId, countDate) {
+  requireFinanceOfficerOrSystemAdmin();
+  var account = findRecordByValue(getSheetByName('Accounts'), 'Account ID', String(accountId || '').trim(), false);
+  if (!account || account.Status !== 'Active' || account['Account Type'] !== 'Cash at Hand') {
+    throw new Error('Please choose an active Cash at Hand account.');
+  }
+  return {
+    accountId: account['Account ID'],
+    countDate: normalizeDateInput_(countDate),
+    expectedCashBalance: calculateCashLedgerBalanceAsAt_(account, countDate)
+  };
+}
+
+function calculateCashLedgerBalanceAsAt_(account, countDate) {
+  var asAt = parseAppDate_(countDate);
+  asAt.setHours(23, 59, 59, 999);
+  var balance = parseMoney_(account['Opening Balance']);
+  getSheetRecords(getSheetByName('Transactions')).forEach(function(transaction) {
+    if (transaction['Account ID'] !== account['Account ID'] || !isPublishedTransactionStatus_(transaction.Status)) {
+      return;
+    }
+    var transactionDate = parseAppDate_(transaction.Date);
+    if (transactionDate > asAt) {
+      return;
+    }
+    var amount = parseMoney_(transaction.Amount);
+    balance += isMoneyInType_(transaction['Transaction Type']) ? amount : -amount;
+  });
+  return Math.round(balance * 100) / 100;
+}
+
 function reviewCashCount(cashCountId, notes) {
   var user = requireAnyRole([ROLES.PUBLISHER, ROLES.REVIEWER]);
   var sheet = getSheetByName('Cash Counts');
@@ -77,14 +120,27 @@ function reviewCashCount(cashCountId, notes) {
   if (normalizeEmail(cashCount['Counted By']) === user.email) {
     throw new Error('You cannot review a cash count you entered.');
   }
+  if (cashCount.Status === CASH_COUNT_STATUS.REVIEWED) {
+    throw new Error('This cash count has already been reviewed.');
+  }
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var current = findRecordByValue(sheet, 'Cash Count ID', cashCountId, false);
+    if (!current || current.Status === CASH_COUNT_STATUS.REVIEWED) {
+      throw new Error('This cash count has already been reviewed.');
+    }
+    updateRecordByHeaders(sheet, current._rowNumber, {
+      'Reviewed By': user.email,
+      Status: CASH_COUNT_STATUS.REVIEWED,
+      'Review Notes': String(notes || '').trim(),
+      'Updated At': nowIso()
+    });
+  } finally {
+    lock.releaseLock();
+  }
 
-  updateRecordByHeaders(sheet, cashCount._rowNumber, {
-    'Reviewed By': user.email,
-    Status: CASH_COUNT_STATUS.REVIEWED,
-    'Updated At': nowIso()
-  });
-
-  writeAuditLog('Cash count reviewed', 'Cash Count', cashCountId, cashCount, {
+  safeWriteAuditLog_('Cash count reviewed', 'Cash Count', cashCountId, cashCount, {
     reviewedBy: user.email,
     notes: notes || ''
   }, 'Publisher reviewed cash count');
@@ -96,11 +152,11 @@ function getReportData(reportType, startDate, endDate) {
   requireAnyRole([ROLES.MEMBER, ROLES.FINANCE_OFFICER, ROLES.PUBLISHER, ROLES.REVIEWER, ROLES.MEMBERSHIP_ADMIN, ROLES.SYSTEM_ADMIN]);
   startDate = startDate ? normalizeDateInput_(startDate) : '';
   endDate = endDate ? normalizeDateInput_(endDate) : '';
-  if (reportType === 'Income and Expenditure Statement') {
-    return buildIncomeExpenditureStatement_(startDate, endDate);
+  if (reportType === 'Income and Expenditure Statement' || reportType === 'Receipts and Payments Statement') {
+    return buildIncomeExpenditureStatement_(startDate, endDate, reportType === 'Income and Expenditure Statement' ? reportType : 'Receipts and Payments Statement');
   }
-  if (reportType === 'Statement of Financial Position') {
-    return buildFinancialPositionStatement_(endDate || startDate);
+  if (reportType === 'Statement of Financial Position' || reportType === 'Statement of Funds Available') {
+    return buildFinancialPositionStatement_(endDate || startDate, reportType === 'Statement of Financial Position' ? reportType : 'Statement of Funds Available');
   }
   return buildReport_(reportType || 'Monthly Financial Summary', startDate, endDate);
 }
@@ -112,10 +168,10 @@ function exportReportCsv(reportType, startDate, endDate) {
 }
 
 function buildReportCsvRows_(report) {
-  if (report.reportType === 'Income and Expenditure Statement') {
+  if (report.reportType === 'Income and Expenditure Statement' || report.reportType === 'Receipts and Payments Statement') {
     return buildIncomeExpenditureCsvRows_(report);
   }
-  if (report.reportType === 'Statement of Financial Position') {
+  if (report.reportType === 'Statement of Financial Position' || report.reportType === 'Statement of Funds Available') {
     return buildFinancialPositionCsvRows_(report);
   }
 
@@ -138,20 +194,21 @@ function buildReportCsvRows_(report) {
 }
 
 function buildIncomeExpenditureCsvRows_(report) {
+  var cashLabel = report.reportType === 'Receipts and Payments Statement';
   return [
     ['Report', report.reportType],
     ['Period', report.periodLabel],
     ['Generated At', report.generatedAt],
     [],
     ['Summary Item', 'Amount'],
-    ['Total Income', report.summary.totalIncome],
-    ['Total Expenditure', report.summary.totalExpenditure],
-    ['Surplus / Deficit', report.summary.surplusDeficit],
+    [cashLabel ? 'Total Receipts' : 'Total Income', report.summary.totalIncome],
+    [cashLabel ? 'Total Payments' : 'Total Expenditure', report.summary.totalExpenditure],
+    [cashLabel ? 'Net Receipts / Payments' : 'Surplus / Deficit', report.summary.surplusDeficit],
     [],
-    ['Income', 'Amount']
+    [cashLabel ? 'Receipts' : 'Income', 'Amount']
   ].concat(amountRowsToCsvRows_(report.incomeRows), [
     [],
-    ['Expenditure', 'Amount']
+    [cashLabel ? 'Payments' : 'Expenditure', 'Amount']
   ], amountRowsToCsvRows_(report.expenditureRows));
 }
 
@@ -162,13 +219,13 @@ function buildFinancialPositionCsvRows_(report) {
     ['Generated At', report.generatedAt],
     [],
     ['Summary Item', 'Amount'],
-    ['Bank Balance', report.summary.bankBalance],
-    ['Cash at Hand', report.summary.cashAtHand],
-    ['Total Funds Available', report.summary.totalFundsAvailable],
+    ['Bank Balance', report.mixedCurrencies ? 'See currency totals' : report.summary.bankBalance],
+    ['Cash at Hand', report.mixedCurrencies ? 'See currency totals' : report.summary.cashAtHand],
+    ['Total Funds Available', report.mixedCurrencies ? 'See currency totals' : report.summary.totalFundsAvailable],
     ['Represented Funds', report.summary.representedFundsTotal],
     [],
     ['Funds Available', 'Amount']
-  ].concat(amountRowsToCsvRows_(report.accountRows), [
+  ].concat(amountRowsToCsvRows_(report.accountRows), report.mixedCurrencies ? [[], ['Currency Totals', 'Amount']].concat(amountRowsToCsvRows_(report.currencyRows)) : [], [
     [],
     ['Represented By', 'Amount']
   ], amountRowsToCsvRows_(report.fundRows));
@@ -220,7 +277,7 @@ function getReportSummaries_() {
 function buildReport_(reportType, startDate, endDate) {
   var period = normalizeReportPeriod_(startDate, endDate);
   var txns = getSheetRecords(getSheetByName('Transactions')).filter(function(transaction) {
-    var date = new Date(transaction.Date);
+    var date = parseAppDate_(transaction.Date);
     return (transaction.Status === TRANSACTION_STATUS.APPROVED || transaction.Status === TRANSACTION_STATUS.RECONCILED)
       && date >= period.start
       && date <= period.end;
@@ -236,7 +293,7 @@ function buildReport_(reportType, startDate, endDate) {
   };
 }
 
-function buildIncomeExpenditureStatement_(startDate, endDate) {
+function buildIncomeExpenditureStatement_(startDate, endDate, reportLabel) {
   var period = normalizeReportPeriod_(startDate, endDate);
   var categories = getCategoryLookup_();
   var txns = getPublishedTransactionsForPeriod_(period.start, period.end);
@@ -244,6 +301,9 @@ function buildIncomeExpenditureStatement_(startDate, endDate) {
   var expenditure = {};
 
   txns.forEach(function(transaction) {
+    if (isInternalTransferType_(transaction['Transaction Type'])) {
+      return;
+    }
     var categoryName = categories[transaction['Category ID']] || 'Other';
     var amount = parseMoney_(transaction.Amount);
     if (transaction['Transaction Type'] === TRANSACTION_TYPES.MONEY_IN) {
@@ -259,7 +319,7 @@ function buildIncomeExpenditureStatement_(startDate, endDate) {
   var totalExpenditure = sumAmountRows_(expenditureRows);
 
   return {
-    reportType: 'Income and Expenditure Statement',
+    reportType: reportLabel || 'Receipts and Payments Statement',
     periodLabel: formatDateForInput_(period.start) + ' to ' + formatDateForInput_(period.end),
     generatedAt: nowIso(),
     incomeRows: incomeRows,
@@ -272,8 +332,8 @@ function buildIncomeExpenditureStatement_(startDate, endDate) {
   };
 }
 
-function buildFinancialPositionStatement_(asAtDate) {
-  var asAt = asAtDate ? new Date(asAtDate) : new Date();
+function buildFinancialPositionStatement_(asAtDate, reportLabel) {
+  var asAt = asAtDate ? parseAppDate_(asAtDate) : new Date();
   if (isNaN(asAt.getTime())) {
     throw new Error('As at date is not valid.');
   }
@@ -284,16 +344,25 @@ function buildFinancialPositionStatement_(asAtDate) {
     return {
       name: account.accountName,
       type: account.accountType,
+      currency: account.currency,
       amount: calculateAccountBalanceAsAt_(account, asAt)
     };
   });
   var bankTotal = sumAmountRows_(accountRows.filter(function(row) { return row.type === 'Bank Account'; }));
   var cashTotal = sumAmountRows_(accountRows.filter(function(row) { return row.type === 'Cash at Hand'; }));
   var totalFunds = bankTotal + cashTotal;
-  var fundRows = calculateFundBalancesAsAt_(asAt);
+  var fundRows = calculateFundBalancesAsAt_(asAt, accounts);
+  var currencies = {};
+  accountRows.forEach(function(row) { currencies[row.currency || 'NGN'] = true; });
+  var currencyTotals = {};
+  accountRows.forEach(function(row) {
+    var currency = row.currency || 'NGN';
+    currencyTotals[currency] = Math.round(((currencyTotals[currency] || 0) + row.amount) * 100) / 100;
+  });
+  var mixedCurrencies = Object.keys(currencies).length > 1;
 
   return {
-    reportType: 'Statement of Financial Position',
+    reportType: reportLabel || 'Statement of Funds Available',
     periodLabel: 'As at ' + formatDateForInput_(asAt),
     generatedAt: nowIso(),
     accountRows: accountRows,
@@ -303,7 +372,10 @@ function buildFinancialPositionStatement_(asAtDate) {
       cashAtHand: Math.round(cashTotal * 100) / 100,
       totalFundsAvailable: Math.round(totalFunds * 100) / 100,
       representedFundsTotal: sumAmountRows_(fundRows)
-    }
+    },
+    currencyWarning: mixedCurrencies ? 'Accounts use more than one currency. Currency totals are shown separately and are not added together.' : '',
+    mixedCurrencies: mixedCurrencies,
+    currencyRows: Object.keys(currencyTotals).sort().map(function(currency) { return { name: currency + ' accounts', amount: currencyTotals[currency], currency: currency }; })
   };
 }
 
@@ -316,6 +388,9 @@ function summarizeTransactions_(transactions) {
   };
 
   transactions.forEach(function(transaction) {
+    if (isInternalTransferType_(transaction.transactionType)) {
+      return;
+    }
     if (transaction.transactionType === TRANSACTION_TYPES.MONEY_IN) {
       summary.moneyIn += parseMoney_(transaction.amount);
     } else {
@@ -328,7 +403,7 @@ function summarizeTransactions_(transactions) {
 
 function getPublishedTransactionsForPeriod_(start, end) {
   return getSheetRecords(getSheetByName('Transactions')).filter(function(transaction) {
-    var date = new Date(transaction.Date);
+    var date = parseAppDate_(transaction.Date);
     return (transaction.Status === TRANSACTION_STATUS.APPROVED || transaction.Status === TRANSACTION_STATUS.RECONCILED)
       && date >= start
       && date <= end;
@@ -338,23 +413,23 @@ function getPublishedTransactionsForPeriod_(start, end) {
 function calculateAccountBalanceAsAt_(account, asAt) {
   var balance = parseMoney_(account.openingBalance);
   getSheetRecords(getSheetByName('Transactions')).forEach(function(transaction) {
-    var date = new Date(transaction.Date);
+    var date = parseAppDate_(transaction.Date);
     if (transaction['Account ID'] !== account.accountId || date > asAt) {
       return;
     }
     if (transaction.Status !== TRANSACTION_STATUS.APPROVED && transaction.Status !== TRANSACTION_STATUS.RECONCILED) {
       return;
     }
-    if (transaction['Transaction Type'] === TRANSACTION_TYPES.MONEY_IN) {
+    if (isMoneyInType_(transaction['Transaction Type'])) {
       balance += parseMoney_(transaction.Amount);
-    } else {
+    } else if (isMoneyOutType_(transaction['Transaction Type'])) {
       balance -= parseMoney_(transaction.Amount);
     }
   });
   return Math.round(balance * 100) / 100;
 }
 
-function calculateFundBalancesAsAt_(asAt) {
+function calculateFundBalancesAsAt_(asAt, accounts) {
   var funds = {};
   getActiveFunds_().forEach(function(fund) {
     funds[fund.fundId] = {
@@ -363,10 +438,18 @@ function calculateFundBalancesAsAt_(asAt) {
     };
   });
 
+  var openingTotal = (accounts || getActiveAccounts_()).reduce(function(total, account) {
+    return total + parseMoney_(account.openingBalance);
+  }, 0);
+  funds.OPENING = {
+    name: 'Opening accumulated funds',
+    amount: openingTotal
+  };
+
   getSheetRecords(getSheetByName('Transactions')).forEach(function(transaction) {
-    var date = new Date(transaction.Date);
+    var date = parseAppDate_(transaction.Date);
     var fundId = transaction['Fund ID'] || 'GENERAL';
-    if (date > asAt || (transaction.Status !== TRANSACTION_STATUS.APPROVED && transaction.Status !== TRANSACTION_STATUS.RECONCILED)) {
+    if (date > asAt || !isPublishedTransactionStatus_(transaction.Status) || isInternalTransferType_(transaction['Transaction Type'])) {
       return;
     }
     if (!funds[fundId]) {
@@ -426,8 +509,8 @@ function cleanCashCountRecord_(record) {
 
 function normalizeReportPeriod_(startDate, endDate) {
   var today = new Date();
-  var start = startDate ? new Date(startDate) : new Date(today.getFullYear(), today.getMonth(), 1);
-  var end = endDate ? new Date(endDate) : new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  var start = startDate ? parseAppDate_(startDate) : new Date(today.getFullYear(), today.getMonth(), 1);
+  var end = endDate ? parseAppDate_(endDate) : new Date(today.getFullYear(), today.getMonth() + 1, 0);
   if (isNaN(start.getTime()) || isNaN(end.getTime())) {
     throw new Error('Report dates are not valid.');
   }
@@ -445,6 +528,9 @@ function formatDateForInput_(date) {
 function csvEscapeRow_(row) {
   return row.map(function(value) {
     var text = String(value === undefined || value === null ? '' : value);
+    if (/^[=+\-@]/.test(text)) {
+      text = "'" + text;
+    }
     if (text.indexOf('"') !== -1 || text.indexOf(',') !== -1 || text.indexOf('\n') !== -1) {
       return '"' + text.replace(/"/g, '""') + '"';
     }

@@ -106,7 +106,7 @@ Finance workflow:
 
 ## Current Features
 
-Implemented through Stage 7 plus later enhancements:
+Implemented through Stage 8 plus later enhancements:
 
 - Setup for Drive folders and Sheet tabs.
 - Role-based access.
@@ -158,7 +158,7 @@ In Apps Script:
 3. Expected current message:
 
 ```text
-Stage 1, Stage 2, Stage 3, Stage 4, Stage 5, Stage 6, and Stage 7 tests passed: 36
+Stage 1 through Stage 8 tests passed: 52
 ```
 
 4. Deploy > Manage deployments > Edit > New version > Deploy.
@@ -178,9 +178,10 @@ Do not deploy as "user accessing the web app" because ordinary members should no
 
 ```text
 https://www.googleapis.com/auth/script.scriptapp
+https://www.googleapis.com/auth/script.send_mail
 ```
 
-This is needed for monthly backup trigger creation.
+The first scope is needed for monthly backup trigger creation. The second sends short-lived member sign-in codes to allow-listed email addresses.
 
 ## Maintenance Notes
 

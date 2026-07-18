@@ -1,18 +1,20 @@
 function setupStage1(options) {
   options = options || {};
+  var scriptOwnerEmail = requireScriptOwnerExecution_();
 
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
 
   try {
-    var activeEmail = normalizeEmail(options.bootstrapAdminEmail || getActiveUserEmail());
+    var activeEmail = normalizeEmail(options.bootstrapAdminEmail || scriptOwnerEmail);
     var rootFolder = options.rootFolderId
       ? DriveApp.getFolderById(options.rootFolderId)
       : getOrCreateFolder_(DriveApp.getRootFolder(), APP_CONFIG.ROOT_FOLDER_NAME);
 
-    var dataFolder = getOrCreateFolder_(rootFolder, "NACO'94 Open Ledger - Data");
+    var dataFolder = getOrCreateFolder_(rootFolder, APP_CONFIG.DATA_SPREADSHEET_NAME);
     var bankStatementsFolder = getOrCreateFolder_(rootFolder, 'Bank Statements');
-    ['2026', '2027', 'Future Years'].forEach(function(name) {
+    var currentYear = new Date().getFullYear();
+    [String(currentYear), String(currentYear + 1), 'Future Years'].forEach(function(name) {
       getOrCreateFolder_(bankStatementsFolder, name);
     });
 
@@ -30,19 +32,19 @@ function setupStage1(options) {
     var spreadsheet = getOrCreateDataSpreadsheet_(dataFolder);
 
     initialiseSheets_(spreadsheet);
+    setSettingValue_(SETTINGS_KEYS.DATA_SPREADSHEET_ID, spreadsheet.getId());
+    setSettingValue_(SETTINGS_KEYS.ROOT_FOLDER_ID, rootFolder.getId());
+    setSettingValue_(SETTINGS_KEYS.BANK_STATEMENTS_FOLDER_ID, bankStatementsFolder.getId());
+    setSettingValue_(SETTINGS_KEYS.RECEIPTS_FOLDER_ID, receiptsFolder.getId());
+    setSettingValue_(SETTINGS_KEYS.REPORTS_FOLDER_ID, reportsFolder.getId());
+    setSettingValue_(SETTINGS_KEYS.ARCHIVE_FOLDER_ID, archiveFolder.getId());
     seedDefaultSettings_(spreadsheet, rootFolder, bankStatementsFolder, receiptsFolder, reportsFolder, archiveFolder);
     seedDefaultCategories_(spreadsheet);
     seedBootstrapAdmin_(spreadsheet, activeEmail);
     protectSheets_(spreadsheet);
+    setSettingValue_('DATA_SCHEMA_VERSION', DATA_SCHEMA_VERSION);
 
-    setSettingValue(SETTINGS_KEYS.DATA_SPREADSHEET_ID, spreadsheet.getId());
-    setSettingValue(SETTINGS_KEYS.ROOT_FOLDER_ID, rootFolder.getId());
-    setSettingValue(SETTINGS_KEYS.BANK_STATEMENTS_FOLDER_ID, bankStatementsFolder.getId());
-    setSettingValue(SETTINGS_KEYS.RECEIPTS_FOLDER_ID, receiptsFolder.getId());
-    setSettingValue(SETTINGS_KEYS.REPORTS_FOLDER_ID, reportsFolder.getId());
-    setSettingValue(SETTINGS_KEYS.ARCHIVE_FOLDER_ID, archiveFolder.getId());
-
-    writeAuditLog('Stage 1 setup completed', 'System', 'Stage 1', '', {
+    safeWriteAuditLog_('Stage 1 setup completed', 'System', 'Stage 1', '', {
       spreadsheetId: spreadsheet.getId(),
       rootFolderId: rootFolder.getId()
     }, 'Initial foundation setup');
@@ -60,8 +62,8 @@ function setupStage1(options) {
   }
 }
 
-function getDataSpreadsheet() {
-  var spreadsheetId = getSettingValue(SETTINGS_KEYS.DATA_SPREADSHEET_ID);
+function getDataSpreadsheet_() {
+  var spreadsheetId = getSettingValue_(SETTINGS_KEYS.DATA_SPREADSHEET_ID);
   if (!spreadsheetId) {
     throw new Error('The data spreadsheet is not configured. Run setupStage1() first.');
   }
@@ -70,7 +72,7 @@ function getDataSpreadsheet() {
 }
 
 function getSheetByName(name) {
-  var sheet = getDataSpreadsheet().getSheetByName(name);
+  var sheet = getDataSpreadsheet_().getSheetByName(name);
   if (!sheet) {
     throw new Error('Missing sheet tab: ' + name);
   }
@@ -103,20 +105,92 @@ function initialiseSheets_(spreadsheet) {
       sheet.setName(definition.name);
     }
 
-    sheet.getRange(1, 1, 1, definition.headers.length).setValues([definition.headers]);
+    ensureSheetHeaders_(sheet, definition.headers);
     sheet.setFrozenRows(1);
-    sheet.autoResizeColumns(1, definition.headers.length);
+    if (sheet.getLastColumn()) {
+      sheet.autoResizeColumns(1, sheet.getLastColumn());
+    }
   });
+}
+
+function ensureSheetHeaders_(sheet, requiredHeaders) {
+  var lastColumn = sheet.getLastColumn();
+  var existing = lastColumn ? sheet.getRange(1, 1, 1, lastColumn).getValues()[0] : [];
+  var hasHeaders = existing.some(function(value) { return String(value || '').trim(); });
+
+  if (!hasHeaders) {
+    sheet.getRange(1, 1, 1, requiredHeaders.length).setValues([requiredHeaders]);
+    return;
+  }
+
+  var missing = requiredHeaders.filter(function(header) {
+    return existing.indexOf(header) === -1;
+  });
+  if (missing.length) {
+    sheet.getRange(1, existing.length + 1, 1, missing.length).setValues([missing]);
+  }
+}
+
+function upgradeDataSchema() {
+  var user = requireAnyRole([ROLES.SYSTEM_ADMIN]);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var spreadsheet = getDataSpreadsheet_();
+    var preUpgradeBackup = performDataBackup_(user.email, 'Pre-upgrade');
+    initialiseSheets_(spreadsheet);
+    var migration = migrateStage8Data_();
+    setSettingValue_('DATA_SCHEMA_VERSION', DATA_SCHEMA_VERSION);
+    upsertSettingRow_(spreadsheet.getSheetByName('Settings'), 'DATA_SCHEMA_VERSION', DATA_SCHEMA_VERSION, 'Current data-sheet structure version', user.email);
+    safeWriteAuditLog_('Data schema upgraded', 'System', DATA_SCHEMA_VERSION, '', { schemaVersion: DATA_SCHEMA_VERSION }, 'System Administrator upgraded the data structure');
+    return { ok: true, schemaVersion: DATA_SCHEMA_VERSION, migration: migration, backupFileId: preUpgradeBackup.fileId };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function migrateStage8Data_() {
+  var duplicateRowsQuarantined = 0;
+  var sourceLinksMigrated = 0;
+  var bankLineSheet = getSheetByName('Bank Statement Lines');
+  getSheetRecords(bankLineSheet).forEach(function(line) {
+    if (line.Status === 'Duplicate Warning') {
+      updateRecordByHeaders(bankLineSheet, line._rowNumber, {
+        Status: 'Duplicate Quarantined',
+        'Review Status': 'Duplicate Quarantined',
+        'Is Duplicate': 'Yes',
+        'Updated At': nowIso()
+      });
+      duplicateRowsQuarantined++;
+    }
+  });
+  var transactionSheet = getSheetByName('Transactions');
+  getSheetRecords(transactionSheet).forEach(function(transaction) {
+    if (transaction['Source Bank Line ID']) {
+      return;
+    }
+    var sourceId = getSourceBankLineIdFromTransaction_(transaction);
+    if (sourceId) {
+      updateRecordByHeaders(transactionSheet, transaction._rowNumber, { 'Source Bank Line ID': sourceId, 'Updated At': nowIso() });
+      sourceLinksMigrated++;
+    }
+  });
+  return {
+    duplicateRowsQuarantined: duplicateRowsQuarantined,
+    sourceLinksMigrated: sourceLinksMigrated
+  };
 }
 
 function seedDefaultSettings_(spreadsheet, rootFolder, bankStatementsFolder, receiptsFolder, reportsFolder, archiveFolder) {
   var sheet = spreadsheet.getSheetByName('Settings');
   var email = getActiveUserEmail();
+  upsertSettingRow_(sheet, SETTINGS_KEYS.DATA_SPREADSHEET_ID, spreadsheet.getId(), 'Main system data spreadsheet', email);
   upsertSettingRow_(sheet, SETTINGS_KEYS.ROOT_FOLDER_ID, rootFolder.getId(), 'Main Google Drive folder', email);
   upsertSettingRow_(sheet, SETTINGS_KEYS.BANK_STATEMENTS_FOLDER_ID, bankStatementsFolder.getId(), 'Bank statement folder', email);
   upsertSettingRow_(sheet, SETTINGS_KEYS.RECEIPTS_FOLDER_ID, receiptsFolder.getId(), 'Receipts and invoices folder', email);
   upsertSettingRow_(sheet, SETTINGS_KEYS.REPORTS_FOLDER_ID, reportsFolder.getId(), 'Financial reports folder', email);
   upsertSettingRow_(sheet, SETTINGS_KEYS.ARCHIVE_FOLDER_ID, archiveFolder.getId(), 'Monthly backups folder', email);
+  upsertSettingRow_(sheet, 'DATA_SCHEMA_VERSION', DATA_SCHEMA_VERSION, 'Current data-sheet structure version', email);
 }
 
 function seedDefaultCategories_(spreadsheet) {
@@ -125,20 +199,21 @@ function seedDefaultCategories_(spreadsheet) {
   var sheet = spreadsheet.getSheetByName('Categories');
   var existing = getExistingCategoryLookup_(sheet);
   var rows = [];
+  var nextCategorySequence = Number(getNextId_('Categories', 'CAT').split('-')[1]);
 
-  income.forEach(function(name, index) {
+  income.forEach(function(name) {
     if (!existing['Money In|' + name]) {
-      rows.push([makeId('CAT', index + 1), 'Money In', name, 'Active', nowIso(), nowIso()]);
+      rows.push([makeId('CAT', nextCategorySequence++), 'Money In', name, 'Active', nowIso(), nowIso()]);
     }
   });
-  expenses.forEach(function(name, index) {
+  expenses.forEach(function(name) {
     if (!existing['Money Out|' + name]) {
-      rows.push([makeId('CAT', income.length + index + 1), 'Money Out', name, 'Active', nowIso(), nowIso()]);
+      rows.push([makeId('CAT', nextCategorySequence++), 'Money Out', name, 'Active', nowIso(), nowIso()]);
     }
   });
 
   if (rows.length) {
-    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows.map(safeSheetRow_));
   }
 }
 
@@ -152,7 +227,7 @@ function seedBootstrapAdmin_(spreadsheet, email) {
     return;
   }
 
-  sheet.appendRow([
+  appendSafeRow_(sheet, [
     'USR-0001',
     email,
     'Bootstrap Administrator',
@@ -177,10 +252,10 @@ function upsertSettingRow_(sheet, key, value, notes, email) {
   var rowNumber = findRecordRowByValue_(sheet, 'Setting Key', key);
   var row = [key, value, notes, nowIso(), email];
   if (rowNumber) {
-    sheet.getRange(rowNumber, 1, 1, row.length).setValues([row]);
+    sheet.getRange(rowNumber, 1, 1, row.length).setValues([safeSheetRow_(row)]);
     return;
   }
-  sheet.appendRow(row);
+  appendSafeRow_(sheet, row);
 }
 
 function getExistingCategoryLookup_(sheet) {

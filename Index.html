@@ -245,6 +245,13 @@
         color: var(--danger);
       }
 
+      a.action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+      }
+
       .locked {
         opacity: 0.58;
       }
@@ -265,6 +272,22 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
+      }
+
+      .split-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .split-row {
+        display: grid;
+        grid-template-columns: minmax(92px, 0.8fr) minmax(150px, 1.2fr) minmax(150px, 1fr) minmax(180px, 1.4fr) auto;
+        gap: 10px;
+        align-items: end;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--soft);
       }
 
       label {
@@ -330,6 +353,67 @@
         border-radius: 12px;
         padding: 12px;
         background: var(--soft);
+      }
+
+      .statement-workbench {
+        display: grid;
+        gap: 12px;
+      }
+
+      .statement-card {
+        border: 1px solid var(--line);
+        border-left: 5px solid var(--gold);
+        border-radius: 12px;
+        padding: 14px;
+        background: #ffffff;
+      }
+
+      .statement-card.verified {
+        border-left-color: var(--green);
+        background: #fbfffc;
+      }
+
+      .statement-card.duplicate {
+        border-left-color: var(--danger);
+        background: var(--danger-soft);
+      }
+
+      .statement-card-head {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .statement-card-head input[type="checkbox"] {
+        width: 22px;
+        min-height: 22px;
+      }
+
+      .statement-fields {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .statement-description {
+        grid-column: 1 / -1;
+      }
+
+      .statement-original {
+        width: 100%;
+        min-height: 520px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--soft);
+      }
+
+      details.legacy-tools > summary {
+        cursor: pointer;
+        font-weight: 800;
+        color: var(--green-dark);
+        padding: 12px 0;
       }
 
       .directory-name {
@@ -428,6 +512,23 @@
           grid-template-columns: 1fr;
         }
 
+        .split-row {
+          grid-template-columns: 1fr;
+        }
+
+        .statement-fields,
+        .statement-card-head {
+          grid-template-columns: 1fr;
+        }
+
+        .statement-card-head input[type="checkbox"] {
+          width: 24px;
+        }
+
+        .statement-original {
+          min-height: 380px;
+        }
+
         .panel {
           padding: 14px;
           border-radius: 12px;
@@ -498,9 +599,9 @@
           actions: ['Search Transactions', 'View Account Status']
         },
         bankMatching: {
-          title: 'Bank Matching',
-          body: 'Finance Officers and Publishers will match bank statement entries to published records here in Stage 5.',
-          actions: ['Upload Bank Statement', 'Match Bank Entries']
+          title: 'Bank Statements',
+          body: 'Finance Officers upload bank lines, split bulk payments into categories, and prepare reconciliations.',
+          actions: ['Upload Bank Statement', 'Categorise Bank Lines']
         },
         reports: {
           title: 'Reports',
@@ -638,6 +739,11 @@
           return;
         }
 
+        if (!state.bootstrap.configured) {
+          renderSetupRequired();
+          return;
+        }
+
         renderSection(state.activeSection);
       }
 
@@ -648,8 +754,23 @@
           `<span class="badge ${user.allowed ? 'ok' : 'warn'}">${escapeHtml(user.status)}</span>`,
           `<span class="badge">${escapeHtml(user.email || 'No Google email detected')}</span>`,
           `<span class="badge">${escapeHtml(roles)}</span>`,
-          `<span class="badge ${state.bootstrap.configured ? 'ok' : 'warn'}">${state.bootstrap.configured ? 'Configured' : 'Setup needed'}</span>`
+          `<span class="badge ${state.bootstrap.configured ? 'ok' : 'warn'}">${state.bootstrap.configured ? 'Configured' : 'Setup needed'}</span>`,
+          `<span class="badge">App ${escapeHtml(state.bootstrap.appVersion || '')}</span>`,
+          `<span class="badge ${String(state.bootstrap.schemaVersion || '').indexOf('Legacy') === -1 ? 'ok' : 'warn'}">Data ${escapeHtml(state.bootstrap.schemaVersion || '')}</span>`,
+          state.bootstrap.verifiedMemberSession ? '<button class="action secondary" type="button" id="signOutButton">Sign Out</button>' : ''
         ].join('');
+        const signOutButton = document.getElementById('signOutButton');
+        if (signOutButton) {
+          signOutButton.addEventListener('click', signOutMemberSession);
+        }
+      }
+
+      function signOutMemberSession() {
+        showBusy('Signing out...');
+        google.script.run
+          .withSuccessHandler(function() { loadApp(); })
+          .withFailureHandler(function(error) { hideBusy(); showToast(error.message || String(error)); })
+          .signOutCurrentUser();
       }
 
       function renderNavigation() {
@@ -668,11 +789,66 @@
       }
 
       function renderAccessDenied() {
+        const needsMemberSignIn = !state.bootstrap.user.allowed && state.bootstrap.memberSignInAvailable;
         document.getElementById('app').innerHTML = `
           <section class="panel">
             <h2>Access Needed</h2>
             <p>${escapeHtml(state.bootstrap.user.message)}</p>
-            <p class="muted">Ask the Membership Administrator or System Administrator to add your Google email address to the Users sheet.</p>
+            ${needsMemberSignIn ? `
+              <p class="muted">Enter the Google email address registered with NACO'94. We will email a six-digit code to confirm it is you.</p>
+              <form id="requestSignInCodeForm" class="form-grid">
+                ${inputField('Registered Google email', 'Sign-In Email', '', 'email')}
+                <div style="grid-column: 1 / -1;"><button class="action" type="submit">Email Me a Code</button></div>
+              </form>
+              <form id="verifySignInCodeForm" class="form-grid" style="margin-top: 1rem;">
+                ${inputField('Registered Google email', 'Verify Email', '', 'email')}
+                ${inputField('Six-digit code', 'Sign-In Code', '', 'text')}
+                <div style="grid-column: 1 / -1;"><button class="action secondary" type="submit">Verify and Open Ledger</button></div>
+              </form>
+              <p class="muted small">The code expires after 10 minutes. Check Spam if it does not appear in your Inbox.</p>
+            ` : '<p class="muted">The Apps Script owner must complete initial setup.</p>'}
+          </section>
+        `;
+        if (needsMemberSignIn) {
+          document.getElementById('requestSignInCodeForm').addEventListener('submit', requestSignInCodeFromUi);
+          document.getElementById('verifySignInCodeForm').addEventListener('submit', verifySignInCodeFromUi);
+        }
+      }
+
+      function requestSignInCodeFromUi(event) {
+        event.preventDefault();
+        const email = event.target.querySelector('[name="Sign-In Email"]').value;
+        showBusy('Sending your sign-in code...');
+        google.script.run
+          .withSuccessHandler(function(result) {
+            hideBusy();
+            document.querySelector('[name="Verify Email"]').value = email;
+            showMessage(result.message);
+          })
+          .withFailureHandler(function(error) {
+            hideBusy();
+            showToast(error.message || String(error));
+          })
+          .requestMemberSignInCode(email);
+      }
+
+      function verifySignInCodeFromUi(event) {
+        event.preventDefault();
+        const email = event.target.querySelector('[name="Verify Email"]').value;
+        const code = event.target.querySelector('[name="Sign-In Code"]').value;
+        showBusy('Checking your sign-in code...');
+        google.script.run
+          .withSuccessHandler(function() { loadApp(); })
+          .withFailureHandler(function(error) { hideBusy(); showToast(error.message || String(error)); })
+          .verifyMemberSignInCode(email, code);
+      }
+
+      function renderSetupRequired() {
+        document.getElementById('app').innerHTML = `
+          <section class="panel">
+            <h2>Setup Needed</h2>
+            <p>The app cannot find the saved data spreadsheet ID yet.</p>
+            <p class="muted">In Apps Script, run <strong>setupStage1()</strong>. When it finishes, deploy a new web app version and reopen the latest web app link.</p>
           </section>
         `;
       }
@@ -782,13 +958,16 @@
             <p class="muted">Clear account balances from published records only.</p>
           </section>
           <section class="grid">
-            ${metricCard('Total Funds Available', formatMoney(summary.totalFunds))}
-            ${metricCard('Bank Balance', formatMoney(summary.bankBalance))}
-            ${metricCard('Cash at Hand', formatMoney(summary.cashAtHand))}
+            ${metricCard('Total Funds Available', summary.mixedCurrencies ? 'See account currencies' : formatMoney(summary.totalFunds))}
+            ${metricCard('Bank Balance', summary.mixedCurrencies ? 'Not combined' : formatMoney(summary.bankBalance))}
+            ${metricCard('Cash at Hand', summary.mixedCurrencies ? 'Not combined' : formatMoney(summary.cashAtHand))}
+            ${summary.mixedCurrencies ? Object.keys(summary.currencyTotals).sort().map(function(currency) { return metricCard(currency + ' Total', formatMoney(summary.currencyTotals[currency])); }).join('') : ''}
             ${metricCard('Money In This Month', formatMoney(summary.moneyInThisMonth))}
             ${metricCard('Money Out This Month', formatMoney(summary.moneyOutThisMonth))}
             ${metricCard('Money In This Year', formatMoney(summary.moneyInThisYear))}
             ${metricCard('Money Out This Year', formatMoney(summary.moneyOutThisYear))}
+            ${(data.canEnterFinance || data.canPublishFinance) ? metricCard('Bank Lines Needing Classification', summary.unclassifiedBankLines) : ''}
+            ${(data.canEnterFinance || data.canPublishFinance) ? metricCard('Duplicates Quarantined', summary.quarantinedDuplicates) : ''}
             ${metricCard('Last Updated', formatShortDateTime(summary.lastUpdated))}
           </section>
           ${renderAccountsPanel(data.accounts)}
@@ -815,6 +994,28 @@
           .getFinanceData();
       }
 
+      function refreshFinances(message) {
+        google.script.run
+          .withSuccessHandler(function(data) {
+            state.finance = data;
+            drawFinances(data);
+            if (message) {
+              showMessage(message);
+            }
+          })
+          .withFailureHandler(function(error) {
+            renderInlineError('Finances', error.message || String(error));
+          })
+          .getFinanceData();
+      }
+
+      function refreshBankStatements(message) {
+        if (message) {
+          showMessage(message);
+        }
+        renderBankStatements();
+      }
+
       function drawFinances(data) {
         document.getElementById('app').innerHTML = `
           <section class="panel">
@@ -826,7 +1027,8 @@
           ${renderPublishPanel(data)}
           ${renderFinanceSettingsPanel(data)}
           ${renderAccountsPanel(data.accounts)}
-          ${renderApprovedTransactionsPanel(data.approvedTransactions)}
+          <div id="correctionPanel"></div>
+          ${renderApprovedTransactionsPanel(data.approvedTransactions, data.canEnterFinance)}
         `;
 
         bindFinanceForms(data);
@@ -853,7 +1055,11 @@
               <form id="cashCountForm" class="form-grid">
                 ${selectField('Cash account', 'Account ID', stage6.cashAccounts.map(accountOption))}
                 ${dateInputField('Count Date', 'Count Date', todayDisplay())}
-                ${inputField('Expected Cash Balance', 'Expected Cash Balance', '0')}
+                <div>
+                  <label for="Expected Cash Balance">Expected Cash Balance</label>
+                  <input id="Expected Cash Balance" name="Expected Cash Balance" value="Calculating..." readonly aria-readonly="true">
+                  <p class="muted small">Calculated automatically from published ledger records.</p>
+                </div>
                 ${inputField('Actual Cash Counted', 'Actual Cash Counted', '0')}
                 <div style="grid-column: 1 / -1;">${textAreaField('Explanation if different', 'Explanation', '')}</div>
                 <div style="grid-column: 1 / -1;"><button class="action" type="submit">Save Cash Count</button></div>
@@ -885,13 +1091,18 @@
       function bindCashControls(stage6) {
         const form = document.getElementById('cashCountForm');
         if (form) {
+          const accountInput = form.querySelector('[name="Account ID"]');
+          const dateInput = form.querySelector('[name="Count Date"]');
+          accountInput.addEventListener('change', refreshCashExpectedBalance);
+          dateInput.addEventListener('change', refreshCashExpectedBalance);
+          dateInput.addEventListener('blur', refreshCashExpectedBalance);
+          refreshCashExpectedBalance();
           form.addEventListener('submit', function(event) {
             event.preventDefault();
-            google.script.run
-              .withSuccessHandler(function(result) {
-                alert('Cash count saved. Difference: ' + formatMoney(result.difference));
-                renderFinances();
-              })
+          google.script.run
+            .withSuccessHandler(function(result) {
+              refreshFinances('Cash count saved. Difference: ' + formatMoney(result.difference));
+            })
               .withFailureHandler(function(error) {
                 alert(error.message || String(error));
               })
@@ -903,11 +1114,35 @@
           button.addEventListener('click', function() {
             const note = prompt('Cash count review note', '') || '';
             google.script.run
-              .withSuccessHandler(renderFinances)
+              .withSuccessHandler(function() { refreshFinances('Cash count reviewed.'); })
               .withFailureHandler(function(error) { alert(error.message || String(error)); })
               .reviewCashCount(button.dataset.reviewCash, note);
           });
         });
+      }
+
+      function refreshCashExpectedBalance() {
+        const form = document.getElementById('cashCountForm');
+        if (!form) {
+          return;
+        }
+        const accountId = form.querySelector('[name="Account ID"]').value;
+        const countDate = form.querySelector('[name="Count Date"]').value;
+        const expectedInput = form.querySelector('[name="Expected Cash Balance"]');
+        if (!accountId || !countDate) {
+          expectedInput.value = '';
+          return;
+        }
+        expectedInput.value = 'Calculating...';
+        google.script.run
+          .withSuccessHandler(function(result) {
+            expectedInput.value = formatMoney(result.expectedCashBalance);
+          })
+          .withFailureHandler(function(error) {
+            expectedInput.value = '';
+            showToast(error.message || String(error));
+          })
+          .getExpectedCashBalance(accountId, countDate);
       }
 
       function renderFinanceEntryPanels(data) {
@@ -959,6 +1194,7 @@
         return `
           <section class="panel">
             <h3>Ready to Publish</h3>
+            ${data.pendingTransactions.some(function(transaction) { return !transaction.correctionBatchId && !transaction.transferGroupId; }) ? `<div class="action-row"><button class="action secondary" type="button" id="selectPublishRows">Select Ordinary Rows</button><button class="action" type="button" id="publishSelectedRows">Publish Selected</button><button class="action danger" type="button" id="sendBackSelectedRows">Send Back Selected</button></div>` : ''}
             ${data.pendingTransactions.length ? renderTransactionTable(data.pendingTransactions, true) : '<p class="muted">No transactions are ready to publish.</p>'}
           </section>
         `;
@@ -1026,7 +1262,7 @@
             ${accounts.length ? `
               <div class="grid">
                 ${accounts.map(function(account) {
-                  return metricCard(account.accountName, formatMoney(account.currentBalance) + ' ' + escapeHtml(account.currency));
+                  return metricCard(account.accountName, formatMoney(account.currentBalance) + ' ' + escapeHtml(account.currency) + (account.lockedThrough ? ' · Locked through ' + isoToDisplayDate(account.lockedThrough) : ''));
                 }).join('')}
               </div>
             ` : '<p class="muted">No active accounts have been added yet.</p>'}
@@ -1034,27 +1270,28 @@
         `;
       }
 
-      function renderApprovedTransactionsPanel(transactions) {
+      function renderApprovedTransactionsPanel(transactions, canCorrect) {
         return `
           <section class="panel">
             <h3>Published Transactions</h3>
-            ${transactions.length ? renderTransactionTable(transactions, false) : '<p class="muted">No published transactions yet.</p>'}
+            ${transactions.length ? renderTransactionTable(transactions, false, canCorrect) : '<p class="muted">No published transactions yet.</p>'}
           </section>
         `;
       }
 
-      function renderTransactionTable(transactions, reviewMode) {
+      function renderTransactionTable(transactions, reviewMode, canCorrect) {
         return `
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Date</th>
+                  ${reviewMode ? '<th>Select</th>' : ''}
                   <th>Type</th>
                   <th>Description</th>
                   <th>Amount</th>
                   <th>Status</th>
-                  ${reviewMode ? '<th>Action</th>' : ''}
+                  ${(reviewMode || canCorrect) ? '<th>Action</th>' : ''}
                 </tr>
               </thead>
               <tbody>
@@ -1062,11 +1299,12 @@
                   return `
                     <tr>
                       <td>${escapeHtml(transaction.date)}</td>
+                      ${reviewMode ? `<td>${!transaction.correctionBatchId && !transaction.transferGroupId ? `<input type="checkbox" name="Publish Selection" value="${escapeAttr(transaction.transactionId)}" style="width:22px;min-height:22px;">` : ''}</td>` : ''}
                       <td>${escapeHtml(transaction.transactionType)}</td>
-                      <td>${escapeHtml(transaction.description)}<br><span class="small muted">${escapeHtml(transaction.payerOrPayee || '')}</span></td>
+                      <td>${escapeHtml(transaction.description)}<br><span class="small muted">${escapeHtml(transaction.payerOrPayee || '')}</span>${transaction.sourceBankLine ? `<br><span class="small"><strong>Bank source ${escapeHtml(transaction.sourceBankLine.bankLineId)}</strong>: ${escapeHtml(transaction.sourceBankLine.description)} · Balance ${formatMoney(transaction.sourceBankLine.runningBalance)} · ${escapeHtml(transaction.sourceBankLine.confidence || 'Manual')}</span>` : ''}${reviewMode && (transaction.sourceBankLine && transaction.sourceBankLine.documentId || transaction.documentId) ? `<br><button class="action secondary" type="button" data-view-finance-evidence="${escapeAttr(transaction.sourceBankLine && transaction.sourceBankLine.documentId || transaction.documentId)}">View Evidence</button>` : ''}${transaction.correctionAction ? `<br><span class="badge warn">${escapeHtml(transaction.correctionAction)} for ${escapeHtml(transaction.correctionForTransactionId || '')}</span>` : ''}${transaction.transferGroupId ? `<br><span class="badge">Transfer ${escapeHtml(transaction.transferGroupId)}</span>` : ''}</td>
                       <td>${formatMoney(transaction.amount)}</td>
                       <td><span class="badge">${escapeHtml(transaction.status)}</span></td>
-                      ${reviewMode ? `<td><button class="action secondary" type="button" data-txn-review="${escapeAttr(transaction.transactionId)}" data-decision="Published">Publish</button><br><br><button class="action danger" type="button" data-txn-review="${escapeAttr(transaction.transactionId)}" data-decision="Sent Back">Send Back</button></td>` : ''}
+                      ${reviewMode ? `<td>${renderTransactionReviewActions(transaction)}</td>` : (canCorrect ? `<td>${!transaction.correctionAction && !String(transaction.transactionType || '').startsWith('Transfer') ? `<button class="action secondary" type="button" data-correct-transaction="${escapeAttr(transaction.transactionId)}">Correct</button>` : ''}</td>` : '')}
                     </tr>
                   `;
                 }).join('')}
@@ -1074,6 +1312,22 @@
             </table>
           </div>
         `;
+      }
+
+      function renderTransactionReviewActions(transaction) {
+        if (transaction.transferGroupId) {
+          if (!transaction.sourceBankLineId) {
+            return '<span class="small muted">Reviewed with transfer group</span>';
+          }
+          return `<button class="action secondary" type="button" data-transfer-review="${escapeAttr(transaction.transferGroupId)}" data-decision="Published">Publish Both Sides</button><br><br><button class="action danger" type="button" data-transfer-review="${escapeAttr(transaction.transferGroupId)}" data-decision="Sent Back">Send Back Both</button>`;
+        }
+        if (transaction.correctionBatchId) {
+          if (transaction.correctionAction !== 'Reversal') {
+            return '<span class="small muted">Reviewed with correction batch</span>';
+          }
+          return `<button class="action secondary" type="button" data-correction-review="${escapeAttr(transaction.correctionBatchId)}" data-decision="Published">Publish Correction</button><br><br><button class="action danger" type="button" data-correction-review="${escapeAttr(transaction.correctionBatchId)}" data-decision="Sent Back">Send Back Both</button>`;
+        }
+        return `<button class="action secondary" type="button" data-txn-review="${escapeAttr(transaction.transactionId)}" data-decision="Published">Publish</button><br><br><button class="action danger" type="button" data-txn-review="${escapeAttr(transaction.transactionId)}" data-decision="Sent Back">Send Back</button>`;
       }
 
       function bindFinanceForms(data) {
@@ -1109,6 +1363,131 @@
         document.querySelectorAll('[data-txn-review]').forEach(function(button) {
           button.addEventListener('click', reviewFinanceTransaction);
         });
+        document.querySelectorAll('[data-correction-review]').forEach(function(button) {
+          button.addEventListener('click', reviewCorrectionBatch);
+        });
+        document.querySelectorAll('[data-transfer-review]').forEach(function(button) {
+          button.addEventListener('click', reviewTransferGroup);
+        });
+        document.querySelectorAll('[data-correct-transaction]').forEach(function(button) {
+          button.addEventListener('click', function() { openCorrectionForm(button.dataset.correctTransaction); });
+        });
+        document.querySelectorAll('[data-view-finance-evidence]').forEach(function(button) {
+          button.onclick = function() { viewFinanceEvidence(button.dataset.viewFinanceEvidence); };
+        });
+        const selectPublishRows = document.getElementById('selectPublishRows');
+        if (selectPublishRows) {
+          selectPublishRows.onclick = function() {
+            document.querySelectorAll('[name="Publish Selection"]').forEach(function(input) { input.checked = true; });
+          };
+          document.getElementById('publishSelectedRows').onclick = function() { reviewSelectedTransactions('Published'); };
+          document.getElementById('sendBackSelectedRows').onclick = function() { reviewSelectedTransactions('Sent Back'); };
+        }
+      }
+
+      function viewFinanceEvidence(documentId) {
+        const evidenceWindow = window.open('', '_blank');
+        if (evidenceWindow) { evidenceWindow.document.body.textContent = 'Opening private evidence...'; }
+        google.script.run
+          .withSuccessHandler(function(evidence) {
+            const binary = atob(evidence.base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
+            const url = URL.createObjectURL(new Blob([bytes], { type: evidence.mimeType }));
+            if (evidenceWindow) { evidenceWindow.location = url; } else { window.open(url, '_blank'); }
+          })
+          .withFailureHandler(function(error) {
+            if (evidenceWindow) { evidenceWindow.close(); }
+            alert(error.message || String(error));
+          })
+          .getStatementEvidenceForReview(documentId);
+      }
+
+      function reviewSelectedTransactions(decision) {
+        const ids = Array.prototype.filter.call(document.querySelectorAll('[name="Publish Selection"]'), function(input) { return input.checked; }).map(function(input) { return input.value; });
+        if (!ids.length) { alert('Select at least one ordinary transaction.'); return; }
+        const reason = prompt(decision + ' batch note', '');
+        if (reason === null) { return; }
+        if (!confirm(decision + ' ' + ids.length + ' selected transaction(s)?')) { return; }
+        showBusy('Reviewing selected transactions...');
+        google.script.run
+          .withSuccessHandler(function(result) { hideBusy(); refreshFinances(result.count + ' transaction(s) ' + decision.toLowerCase() + '.'); })
+          .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+          .publishTransactionsBatch(ids, decision, reason);
+      }
+
+      function openCorrectionForm(transactionId) {
+        const transaction = (state.finance.approvedTransactions || []).filter(function(item) { return item.transactionId === transactionId; })[0];
+        if (!transaction) { return; }
+        const transactionAccount = (state.finance.accounts || []).filter(function(account) { return account.accountId === transaction.accountId; })[0];
+        const correctionDefaultDate = transactionAccount && transactionAccount.lockedThrough && (displayToIsoDate(transaction.date) || transaction.date) <= transactionAccount.lockedThrough
+          ? todayDisplay()
+          : transaction.date;
+        const panel = document.getElementById('correctionPanel');
+        panel.innerHTML = `
+          <section class="panel message">
+            <h3>Correct Published Record ${escapeHtml(transactionId)}</h3>
+            <p class="muted">The original will remain visible. The app will prepare a reversal and a corrected replacement for the Publisher to review together.</p>
+            <form id="correctionForm" class="form-grid">
+              ${selectField('Correct type', 'Transaction Type', [
+                { value: 'Money In', label: 'Money In', selected: transaction.transactionType === 'Money In' },
+                { value: 'Money Out', label: 'Money Out', selected: transaction.transactionType === 'Money Out' }
+              ])}
+              ${dateInputField('Correction posting date', 'Date', correctionDefaultDate)}
+              ${inputField('Correct amount', 'Amount', transaction.amount)}
+              ${selectField('Account', 'Account ID', state.finance.accounts.map(function(account) {
+                const option = accountOption(account); option.selected = account.accountId === transaction.accountId; return option;
+              }))}
+              ${inputField('Payer or payee', 'Payer or Payee', transaction.payerOrPayee || '')}
+              ${selectField('Classification', 'Category ID', state.finance.categories.map(function(category) {
+                return { value: category.categoryId, label: category.categoryType + ' — ' + category.categoryName, selected: category.categoryId === transaction.categoryId };
+              }))}
+              ${selectField('Fund or project', 'Fund ID', [{ value: '', label: 'General / none', selected: !transaction.fundId }].concat(state.finance.funds.map(function(fund) {
+                return { value: fund.fundId, label: fund.fundName, selected: fund.fundId === transaction.fundId };
+              })))}
+              ${inputField('Reference number', 'Reference Number', transaction.referenceNumber || '')}
+              <div style="grid-column:1/-1;">${textAreaField('Correct description', 'Description', transaction.description)}</div>
+              <div style="grid-column:1/-1;">${textAreaField('Reason for correction', 'Correction Reason', '')}</div>
+              <div class="action-row" style="grid-column:1/-1;"><button class="action" type="submit">Send Correction To Publisher</button><button class="action secondary" type="button" id="cancelCorrection">Cancel</button></div>
+            </form>
+          </section>`;
+        document.getElementById('cancelCorrection').onclick = function() { panel.innerHTML = ''; };
+        document.getElementById('correctionForm').addEventListener('submit', function(event) {
+          event.preventDefault();
+          const values = readFormValues(event.target);
+          const correctionReason = values['Correction Reason'];
+          delete values['Correction Reason'];
+          showBusy('Preparing the visible reversal and replacement...');
+          google.script.run
+            .withSuccessHandler(function(result) { hideBusy(); refreshFinances('Correction prepared: ' + result.correctionBatchId); })
+            .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+            .prepareTransactionCorrection(transactionId, values, correctionReason);
+        });
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      function reviewCorrectionBatch(event) {
+        const batchId = event.target.dataset.correctionReview;
+        const decision = event.target.dataset.decision;
+        const reason = prompt(decision + ' note', '');
+        if (reason === null) { return; }
+        showBusy('Reviewing the complete correction...');
+        google.script.run
+          .withSuccessHandler(function() { hideBusy(); refreshFinances('Correction batch ' + decision.toLowerCase() + '.'); })
+          .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+          .publishCorrectionBatch(batchId, decision, reason);
+      }
+
+      function reviewTransferGroup(event) {
+        const groupId = event.target.dataset.transferReview;
+        const decision = event.target.dataset.decision;
+        const reason = prompt(decision + ' note', '');
+        if (reason === null) { return; }
+        showBusy('Reviewing both sides of the internal transfer...');
+        google.script.run
+          .withSuccessHandler(function() { hideBusy(); refreshFinances('Internal transfer ' + decision.toLowerCase() + '.'); })
+          .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+          .publishTransferGroup(groupId, decision, reason);
       }
 
       function submitFinanceTransaction(event, methodName) {
@@ -1150,8 +1529,7 @@
       function submitFinanceRecord(methodName, record) {
         google.script.run
           .withSuccessHandler(function(result) {
-            alert('Transaction submitted: ' + result.transactionId);
-            renderFinances();
+            refreshFinances('Transaction submitted: ' + result.transactionId);
           })
           .withFailureHandler(function(error) {
             alert(error.message || String(error));
@@ -1162,8 +1540,7 @@
         event.preventDefault();
         google.script.run
           .withSuccessHandler(function(result) {
-            alert('Account added: ' + result.accountId);
-            renderFinances();
+            refreshFinances('Account added: ' + result.accountId);
           })
           .withFailureHandler(function(error) {
             alert(error.message || String(error));
@@ -1175,8 +1552,7 @@
         event.preventDefault();
         google.script.run
           .withSuccessHandler(function(result) {
-            alert('Fund or project added: ' + result.fundId);
-            renderFinances();
+            refreshFinances('Fund or project added: ' + result.fundId);
           })
           .withFailureHandler(function(error) {
             alert(error.message || String(error));
@@ -1188,8 +1564,7 @@
         event.preventDefault();
         google.script.run
           .withSuccessHandler(function(result) {
-            alert('Category added: ' + result.categoryId);
-            renderFinances();
+            refreshFinances('Category added: ' + result.categoryId);
           })
           .withFailureHandler(function(error) {
             alert(error.message || String(error));
@@ -1207,7 +1582,7 @@
 
         google.script.run
           .withSuccessHandler(function() {
-            renderFinances();
+            refreshFinances('Transaction ' + decision.toLowerCase() + '.');
           })
           .withFailureHandler(function(error) {
             alert(error.message || String(error));
@@ -1237,8 +1612,8 @@
       function renderBankStatements() {
         document.getElementById('app').innerHTML = `
           <section class="panel">
-            <h2>Bank Matching</h2>
-            <p class="muted">Loading bank statement and matching tools...</p>
+            <h2>Bank Statements</h2>
+            <p class="muted">Loading bank statement tools...</p>
           </section>
         `;
 
@@ -1252,28 +1627,82 @@
                     drawBankStatements(data, matchData);
                   })
                   .withFailureHandler(function(error) {
-                    renderInlineError('Bank Matching', error.message || String(error));
+                    renderInlineError('Bank Statements', error.message || String(error));
                   })
                   .getBankMatchingData();
               })
               .withFailureHandler(function(error) {
-                renderInlineError('Bank Matching', error.message || String(error));
+                renderInlineError('Bank Statements', error.message || String(error));
               })
               .getFinanceData();
           })
           .withFailureHandler(function(error) {
-            renderInlineError('Bank Matching', error.message || String(error));
+            renderInlineError('Bank Statements', error.message || String(error));
           })
           .getBankStatementData();
       }
 
       function drawBankStatements(data, matchData) {
+        state.bankMatchData = matchData;
+        state.filteredBankLines = data.lines || [];
         document.getElementById('app').innerHTML = `
           <section class="panel">
-            <h2>Bank Matching</h2>
-            <p class="muted">Store bank statements, match bank lines to published records, and prepare simple reconciliations.</p>
+            <h2>Bank Statements</h2>
+            <p class="muted">Upload bank records first, categorise each bank line, and let published records stay tied to the bank balance.</p>
           </section>
+          ${data.canManageBankStatements ? renderBankStatementEntryPanels(data) : ''}
           ${renderMatchWorkspace(matchData)}
+          ${renderBankImports(data.imports)}
+          ${renderBankLines(data.lines)}
+          ${renderReconciliations(matchData.reconciliations, matchData.canPublish)}
+        `;
+
+        if (data.canManageBankStatements) {
+          document.getElementById('unifiedStatementForm').addEventListener('submit', submitUnifiedStatementPreview);
+          document.getElementById('csvPreviewForm').addEventListener('submit', submitCsvPreview);
+          document.getElementById('pdfPreviewForm').addEventListener('submit', submitPdfPreview);
+          document.getElementById('pdfUploadForm').addEventListener('submit', submitPdfUpload);
+          document.getElementById('manualBankLineForm').addEventListener('submit', submitManualBankLine);
+        }
+        const bankLineFilterForm = document.getElementById('bankLineFilterForm');
+        if (bankLineFilterForm) {
+          bankLineFilterForm.addEventListener('submit', function(event) { event.preventDefault(); loadFilteredBankLines(1); });
+        }
+        document.querySelectorAll('[data-bank-page]').forEach(function(button) {
+          button.onclick = function() { loadFilteredBankLines(Number(button.dataset.bankPage)); };
+        });
+        bindDuplicateResolutionButtons();
+        bindQuickClassifyButtons();
+        document.querySelectorAll('[data-resume-statement-draft]').forEach(function(button) {
+          button.onclick = function() { resumeStatementDraft(button.dataset.resumeStatementDraft); };
+        });
+        document.querySelectorAll('[data-discard-statement-draft]').forEach(function(button) {
+          button.onclick = function() { discardStatementDraft(button.dataset.discardStatementDraft); };
+        });
+        bindMatchingControls(matchData);
+      }
+
+      function renderBankStatementEntryPanels(data) {
+        return `
+          <section class="panel">
+            <h3>Upload and Classify a Statement</h3>
+            <p class="muted">Recommended: upload PDF, Excel, or CSV once. Review the bank amounts, choose a classification beside each transaction, then send the batch to the Publisher.</p>
+            <form id="unifiedStatementForm" class="form-grid">
+              ${selectField('Association account', 'Account ID', data.accounts.map(accountOption))}
+              ${fileField('Bank statement', 'Statement File', 'application/pdf,.pdf,.xls,.xlsx,.csv,text/csv', 'PDF, Excel, or CSV up to 10 MB.')}
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Review Statement</button></div>
+            </form>
+            <div id="statementWorkbench"></div>
+          </section>
+          ${data.drafts && data.drafts.length ? `<section class="panel">
+            <h3>Saved Statement Reviews</h3>
+            <p class="muted">Continue a long review without starting again.</p>
+            <div class="request-list">${data.drafts.map(function(draft) {
+              return `<div class="request-card"><strong>${escapeHtml(draft.fileName)}</strong><br><span class="small muted">${escapeHtml(draft.sourceFormat)} - Saved ${escapeHtml(formatShortDateTime(draft.savedAt))} by ${escapeHtml(draft.savedBy)}</span><div class="action-row"><button class="action secondary" type="button" data-resume-statement-draft="${escapeAttr(draft.draftId)}">Resume</button><button class="action danger" type="button" data-discard-statement-draft="${escapeAttr(draft.draftId)}">Discard</button></div></div>`;
+            }).join('')}</div>
+          </section>` : ''}
+          <details class="legacy-tools">
+            <summary>Separate CSV, PDF evidence, and manual tools</summary>
           <section class="panel">
             <h3>Upload CSV Bank Statement</h3>
             <form id="csvPreviewForm" class="form-grid">
@@ -1284,10 +1713,20 @@
             <div id="csvPreview"></div>
           </section>
           <section class="panel">
-            <h3>Upload PDF Bank Statement</h3>
+            <h3>Extract PDF Bank Statement</h3>
+            <p class="muted">PDF extraction is a helper, not final approval. Check every row before importing.</p>
+            <form id="pdfPreviewForm" class="form-grid">
+              ${selectField('Account', 'Account ID', data.accounts.map(accountOption))}
+              ${fileField('PDF bank statement', 'PDF File', 'application/pdf,.pdf', 'PDF bank statement up to 10 MB. The app will extract likely rows for review.')}
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Extract PDF For Review</button></div>
+            </form>
+            <div id="pdfPreview"></div>
+          </section>
+          <section class="panel">
+            <h3>Store Statement Evidence</h3>
             <form id="pdfUploadForm" class="form-grid">
-              ${fileField('PDF bank statement', 'PDF File', 'application/pdf', 'PDF bank statement up to 10 MB.')}
-              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Store PDF Statement</button></div>
+              ${fileField('Statement file', 'Statement File', 'application/pdf,.pdf,.xls,.xlsx,.csv,text/csv', 'PDF, Excel, or CSV bank statement up to 10 MB. Use CSV import above when you want automatic line loading.')}
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Store Statement File</button></div>
             </form>
           </section>
           <section class="panel">
@@ -1300,24 +1739,22 @@
               ${inputField('Money Out', 'Money Out', '')}
               ${inputField('Running Balance', 'Running Balance', '')}
               ${inputField('Reference Number', 'Reference Number', '')}
+              ${selectField('Classification (optional)', 'Category ID', [{ value: '', label: 'Classify later' }].concat((state.finance.categories || []).map(function(category) {
+                return { value: category.categoryId, label: category.categoryType + ' - ' + category.categoryName };
+              })))}
+              ${selectField('Fund or project', 'Fund ID', [{ value: '', label: 'General / none' }].concat((state.finance.funds || []).map(fundOption)))}
+              ${inputField('Payer or payee', 'Counterparty', '')}
               <div style="grid-column: 1 / -1;">${textAreaField('Notes', 'Notes', '')}</div>
               <div style="grid-column: 1 / -1;"><button class="action" type="submit">Save Bank Line</button></div>
             </form>
           </section>
-          ${renderBankImports(data.imports)}
-          ${renderBankLines(data.lines)}
-          ${renderReconciliations(matchData.reconciliations)}
+          </details>
         `;
-
-        document.getElementById('csvPreviewForm').addEventListener('submit', submitCsvPreview);
-        document.getElementById('pdfUploadForm').addEventListener('submit', submitPdfUpload);
-        document.getElementById('manualBankLineForm').addEventListener('submit', submitManualBankLine);
-        bindMatchingControls(matchData);
       }
 
       function renderMatchWorkspace(matchData) {
         return `
-          <section class="panel">
+          ${matchData.canPrepare ? `<section class="panel">
             <h3>Match Bank Entries</h3>
             <p class="muted">Choose a bank line and match it to a published transaction with the same amount.</p>
             <div class="form-grid">
@@ -1337,6 +1774,12 @@
                   }).join('')}
                 </select>
               </div>
+              <div>
+                <label for="transferDestinationAccount">Other association account (for internal transfers)</label>
+                <select id="transferDestinationAccount">
+                  ${matchData.accounts.map(accountOption).map(function(option) { return `<option value="${escapeAttr(option.value)}">${escapeHtml(option.label)}</option>`; }).join('')}
+                </select>
+              </div>
               <div style="grid-column: 1 / -1;">
                 <button class="action" type="button" id="matchSelectedButton">Match Selected</button>
                 <button class="action secondary" type="button" id="suggestMatchesButton">Suggest Matches</button>
@@ -1345,10 +1788,10 @@
               </div>
             </div>
             <div id="matchSuggestions"></div>
-          </section>
-          <section class="panel">
-            <h3>Create Record From Bank Line</h3>
-            <p class="muted">Use this when the bank shows money in or out that has not yet been entered in the ledger.</p>
+          </section>` : ''}
+          ${matchData.canPrepare ? `<section class="panel">
+            <h3>Categorise Bank Line</h3>
+            <p class="muted">Use one row for a simple payment, or split a bulk payment across several categories. The split total must equal the bank amount.</p>
             <form id="createFromBankLineForm" class="form-grid">
               <div>
                 <label for="createBankLineId">Bank line</label>
@@ -1358,29 +1801,160 @@
                   }).join('')}
                 </select>
               </div>
-              ${selectField('Category', 'Category ID', state.finance ? state.finance.categories.map(categoryOption) : [])}
-              ${selectField('Fund or project', 'Fund ID', [{ value: '', label: 'None' }].concat(state.finance ? state.finance.funds.map(fundOption) : []))}
               ${inputField('Payer or payee', 'Payer or Payee', '')}
-              <div style="grid-column: 1 / -1;">${textAreaField('Description', 'Description', '')}</div>
-              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Create Ledger Record</button></div>
+              <div style="grid-column: 1 / -1;">
+                <label>Category split</label>
+                <div id="splitRows" class="split-list"></div>
+                <p id="splitRemaining" class="message small">Remaining to allocate: 0.00</p>
+                <div class="action-row">
+                  <button class="action secondary" type="button" id="addSplitRowButton">Add Split Row</button>
+                  <button class="action secondary" type="button" id="resetSplitRowsButton">Reset To One Row</button>
+                </div>
+              </div>
+              <div style="grid-column: 1 / -1;">${textAreaField('General description', 'Description', '')}</div>
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Send Categories To Publisher</button></div>
             </form>
-          </section>
-          <section class="panel">
+          </section>` : ''}
+          ${matchData.canPrepare ? `<section class="panel">
             <h3>Prepare Reconciliation</h3>
             <form id="reconciliationForm" class="form-grid">
               ${selectField('Account', 'Account ID', matchData.accounts.map(accountOption))}
               ${dateInputField('Period Start', 'Period Start', todayDisplay())}
               ${dateInputField('Period End', 'Period End', todayDisplay())}
-              ${inputField('Opening Balance', 'Opening Balance', '0')}
               ${inputField('Statement Closing Balance', 'Statement Closing Balance', '0')}
+              <p class="muted small" style="grid-column: 1 / -1;">The opening and expected closing balances are calculated from published ledger records. A successfully imported bank statement must cover the full period.</p>
               <div style="grid-column: 1 / -1;"><button class="action" type="submit">Prepare Reconciliation</button></div>
             </form>
-          </section>
+          </section>` : ''}
           <section class="panel">
             <h3>Recent Matches</h3>
             ${matchData.recentMatches.length ? renderSimpleMatchTable(matchData.recentMatches) : '<p class="muted">No matches yet.</p>'}
           </section>
         `;
+      }
+
+      function getBankLineById(matchData, bankLineId) {
+        return (matchData.unmatchedBankLines || []).filter(function(line) {
+          return line.bankLineId === bankLineId;
+        })[0] || null;
+      }
+
+      function getBankLineAmount(line) {
+        if (!line) {
+          return 0;
+        }
+        return line.moneyIn > 0 ? line.moneyIn : line.moneyOut;
+      }
+
+      function getBankLineCategoryType(line) {
+        return line && line.moneyIn > 0 ? 'Money In' : 'Money Out';
+      }
+
+      function renderCategoryOptionsForLine(line, selectedValue) {
+        const categoryType = getBankLineCategoryType(line);
+        const categories = state.finance ? state.finance.categories : [];
+        return categories.filter(function(category) {
+          return category.categoryType === categoryType;
+        }).map(function(category) {
+          return `<option value="${escapeAttr(category.categoryId)}" ${category.categoryId === selectedValue ? 'selected' : ''}>${escapeHtml(category.categoryName)}</option>`;
+        }).join('');
+      }
+
+      function renderFundOptions(selectedValue) {
+        const funds = state.finance ? state.finance.funds : [];
+        return `<option value="">None</option>` + funds.map(function(fund) {
+          return `<option value="${escapeAttr(fund.fundId)}" ${fund.fundId === selectedValue ? 'selected' : ''}>${escapeHtml(fund.fundName)}</option>`;
+        }).join('');
+      }
+
+      function renderSplitRow(line, amount, index) {
+        return `
+          <div class="split-row" data-split-row="1">
+            <div>
+              <label>Amount</label>
+              <input name="Split Amount" value="${escapeAttr(amount || '')}" inputmode="decimal">
+            </div>
+            <div>
+              <label>Category</label>
+              <select name="Split Category">${renderCategoryOptionsForLine(line, '')}</select>
+            </div>
+            <div>
+              <label>Fund</label>
+              <select name="Split Fund">${renderFundOptions('')}</select>
+            </div>
+            <div>
+              <label>Description</label>
+              <input name="Split Description" value="${escapeAttr(line && index === 0 ? line.description : '')}">
+            </div>
+            <div>
+              <button class="action danger" type="button" data-remove-split="1">Remove</button>
+            </div>
+          </div>
+        `;
+      }
+
+      function resetSplitRows(matchData) {
+        const select = document.getElementById('createBankLineId');
+        const container = document.getElementById('splitRows');
+        if (!select || !container) {
+          return;
+        }
+        const line = getBankLineById(matchData, select.value);
+        container.innerHTML = renderSplitRow(line, getBankLineAmount(line), 0);
+        bindSplitRemoveButtons();
+        updateSplitRemaining();
+      }
+
+      function addSplitRow(matchData) {
+        const select = document.getElementById('createBankLineId');
+        const container = document.getElementById('splitRows');
+        if (!select || !container) {
+          return;
+        }
+        const line = getBankLineById(matchData, select.value);
+        container.insertAdjacentHTML('beforeend', renderSplitRow(line, '', container.children.length));
+        bindSplitRemoveButtons();
+        updateSplitRemaining();
+      }
+
+      function bindSplitRemoveButtons() {
+        document.querySelectorAll('[data-remove-split]').forEach(function(button) {
+          button.onclick = function() {
+            const rows = document.querySelectorAll('[data-split-row]');
+            if (rows.length <= 1) {
+              alert('Keep at least one category row.');
+              return;
+            }
+            button.closest('[data-split-row]').remove();
+            updateSplitRemaining();
+          };
+        });
+        document.querySelectorAll('[data-split-row] [name="Split Amount"]').forEach(function(input) {
+          input.oninput = updateSplitRemaining;
+        });
+      }
+
+      function updateSplitRemaining() {
+        const output = document.getElementById('splitRemaining');
+        const select = document.getElementById('createBankLineId');
+        if (!output || !select || !state.bankMatchData) { return; }
+        const line = getBankLineById(state.bankMatchData, select.value);
+        const total = Array.prototype.reduce.call(document.querySelectorAll('[data-split-row] [name="Split Amount"]'), function(sum, input) {
+          return sum + (Number(String(input.value || '0').replace(/,/g, '')) || 0);
+        }, 0);
+        const remaining = Math.round((getBankLineAmount(line) - total) * 100) / 100;
+        output.textContent = 'Remaining to allocate: ' + formatMoney(remaining);
+      }
+
+      function readSplitRows() {
+        return Array.prototype.map.call(document.querySelectorAll('[data-split-row]'), function(row) {
+          return {
+            Amount: row.querySelector('[name="Split Amount"]').value,
+            'Category ID': row.querySelector('[name="Split Category"]').value,
+            'Fund ID': row.querySelector('[name="Split Fund"]').value,
+            Description: row.querySelector('[name="Split Description"]').value
+          };
+        });
       }
 
       function bindMatchingControls(matchData) {
@@ -1391,8 +1965,7 @@
             const transactionId = document.getElementById('selectedTransaction').value;
             google.script.run
               .withSuccessHandler(function(result) {
-                alert('Matched: ' + result.matchId);
-                renderBankStatements();
+                refreshBankStatements('Matched: ' + result.matchId);
               })
               .withFailureHandler(function(error) {
                 alert(error.message || String(error));
@@ -1419,7 +1992,7 @@
           needsReviewButton.addEventListener('click', function() {
             const note = prompt('Why does this need review?', '') || '';
             google.script.run
-              .withSuccessHandler(renderBankStatements)
+              .withSuccessHandler(function() { refreshBankStatements('Bank line marked for review.'); })
               .withFailureHandler(function(error) { alert(error.message || String(error)); })
               .markBankLineNeedsReview(document.getElementById('selectedBankLine').value, note);
           });
@@ -1428,25 +2001,45 @@
         const transferButton = document.getElementById('internalTransferButton');
         if (transferButton) {
           transferButton.addEventListener('click', function() {
+            const bankLineId = document.getElementById('selectedBankLine').value;
+            const destinationAccountId = document.getElementById('transferDestinationAccount').value;
+            if (!bankLineId || !destinationAccountId) {
+              alert('Choose the bank line and the other association account.');
+              return;
+            }
             const note = prompt('Internal transfer note', '') || '';
+            if (!confirm('Prepare both sides of this internal transfer for Publisher review?')) {
+              return;
+            }
             google.script.run
-              .withSuccessHandler(renderBankStatements)
+              .withSuccessHandler(function(result) { refreshBankStatements('Internal transfer prepared: ' + result.transferGroupId); })
               .withFailureHandler(function(error) { alert(error.message || String(error)); })
-              .markBankLineInternalTransfer(document.getElementById('selectedBankLine').value, note);
+              .createInternalTransferFromBankLine(bankLineId, destinationAccountId, note);
           });
         }
 
         const createForm = document.getElementById('createFromBankLineForm');
         if (createForm) {
+          resetSplitRows(matchData);
+          document.getElementById('createBankLineId').addEventListener('change', function() {
+            resetSplitRows(matchData);
+          });
+          document.getElementById('addSplitRowButton').addEventListener('click', function() {
+            addSplitRow(matchData);
+          });
+          document.getElementById('resetSplitRowsButton').addEventListener('click', function() {
+            resetSplitRows(matchData);
+          });
           createForm.addEventListener('submit', function(event) {
             event.preventDefault();
             const values = readFormValues(event.target);
             const bankLineId = values['Bank Line ID'];
             delete values['Bank Line ID'];
+            values.Splits = JSON.stringify(readSplitRows());
             google.script.run
               .withSuccessHandler(function(result) {
-                alert('Ledger record created: ' + result.transactionId + '. It must still be published.');
-                renderBankStatements();
+                const count = result.transactionIds ? result.transactionIds.length : 1;
+                refreshBankStatements(count + ' category record(s) sent to the Publisher.');
               })
               .withFailureHandler(function(error) { alert(error.message || String(error)); })
               .createTransactionFromBankLine(bankLineId, values);
@@ -1459,8 +2052,7 @@
             event.preventDefault();
             google.script.run
               .withSuccessHandler(function(result) {
-                alert('Reconciliation prepared: ' + result.reconciliationId + '. Difference: ' + formatMoney(result.summary.difference));
-                renderBankStatements();
+                refreshBankStatements('Reconciliation prepared: ' + result.reconciliationId + '. Difference: ' + formatMoney(result.summary.difference));
               })
               .withFailureHandler(function(error) { alert(error.message || String(error)); })
               .prepareReconciliation(readFormValues(event.target));
@@ -1471,7 +2063,7 @@
           button.addEventListener('click', function() {
             const note = prompt('Publish reconciliation note', '') || '';
             google.script.run
-              .withSuccessHandler(renderBankStatements)
+              .withSuccessHandler(function() { refreshBankStatements('Reconciliation published and locked.'); })
               .withFailureHandler(function(error) { alert(error.message || String(error)); })
               .publishReconciliation(button.dataset.publishReconciliation, note);
           });
@@ -1509,7 +2101,7 @@
         `;
       }
 
-      function renderReconciliations(reconciliations) {
+      function renderReconciliations(reconciliations, canPublish) {
         return `
           <section class="panel">
             <h3>Reconciliations</h3>
@@ -1519,7 +2111,7 @@
                   <thead><tr><th>ID</th><th>Period</th><th>Expected</th><th>Statement</th><th>Difference</th><th>Status</th><th>Action</th></tr></thead>
                   <tbody>
                     ${reconciliations.map(function(item) {
-                      return `<tr><td>${escapeHtml(item.reconciliationId)}</td><td>${escapeHtml(item.periodStart + ' to ' + item.periodEnd)}</td><td>${formatMoney(item.expectedClosingBalance)}</td><td>${formatMoney(item.statementClosingBalance)}</td><td>${formatMoney(item.difference)}</td><td><span class="badge">${escapeHtml(item.status)}</span></td><td>${item.status === 'Ready to Publish' ? `<button class="action secondary" type="button" data-publish-reconciliation="${escapeAttr(item.reconciliationId)}">Publish</button>` : ''}</td></tr>`;
+                      return `<tr><td>${escapeHtml(item.reconciliationId)}</td><td>${escapeHtml(item.periodStart + ' to ' + item.periodEnd)}</td><td>${formatMoney(item.expectedClosingBalance)}</td><td>${formatMoney(item.statementClosingBalance)}</td><td>${formatMoney(item.difference)}</td><td><span class="badge">${escapeHtml(item.status)}</span></td><td>${canPublish && item.status === 'Ready to Publish' ? `<button class="action secondary" type="button" data-publish-reconciliation="${escapeAttr(item.reconciliationId)}">Publish</button>` : ''}</td></tr>`;
                     }).join('')}
                   </tbody>
                 </table>
@@ -1527,6 +2119,316 @@
             ` : '<p class="muted">No reconciliations prepared yet.</p>'}
           </section>
         `;
+      }
+
+      function submitUnifiedStatementPreview(event) {
+        event.preventDefault();
+        const accountId = event.target.querySelector('[name="Account ID"]').value;
+        const file = event.target.querySelector('input[type="file"]').files[0];
+        if (!file) {
+          alert('Choose a PDF, Excel, or CSV statement first.');
+          return;
+        }
+        if (state.statementObjectUrl) {
+          URL.revokeObjectURL(state.statementObjectUrl);
+          state.statementObjectUrl = '';
+        }
+        if (/\.pdf$/i.test(file.name)) {
+          state.statementObjectUrl = URL.createObjectURL(file);
+        }
+        showBusy('Reading and checking the bank statement...');
+        readFileAsBase64(file, function(base64) {
+          google.script.run
+            .withSuccessHandler(function(preview) {
+              hideBusy();
+              state.statementPreview = preview;
+              renderUnifiedStatementWorkbench(preview);
+            })
+            .withFailureHandler(function(error) {
+              hideBusy();
+              alert(error.message || String(error));
+            })
+            .previewBankStatement({
+              accountId: accountId,
+              fileName: file.name,
+              mimeType: file.type,
+              base64: base64
+            });
+        });
+      }
+
+      function renderUnifiedStatementWorkbench(preview) {
+        const container = document.getElementById('statementWorkbench');
+        if (!container) {
+          return;
+        }
+        if (preview.needsMapping) {
+          renderUnifiedStatementMapping(preview);
+          return;
+        }
+        const rows = (preview.rows || []).filter(function(row) {
+          return Number(row.moneyIn || 0) > 0 || Number(row.moneyOut || 0) > 0;
+        });
+        preview.rows = rows;
+        const originalPreview = preview.sourceFormat === 'PDF' && state.statementObjectUrl
+          ? `<section class="message" style="margin-top:12px;"><h3>Original PDF</h3><p>Chrome cannot display a PDF inside the restricted Google Apps Script frame. Open it in a separate tab and switch between the PDF and this review screen.</p><a class="action secondary" href="${escapeAttr(state.statementObjectUrl)}" target="_blank" rel="noopener noreferrer">Open Original PDF In New Tab</a></section>`
+          : '';
+        container.innerHTML = `
+          <hr>
+          <h3>Statement Review</h3>
+          <div class="message ${preview.balanceBreakCount ? 'warn' : ''}">
+            <p><strong>${escapeHtml(rows.length)} complete transaction rows</strong> found from ${escapeHtml(preview.sourceFormat || '')}. ${escapeHtml(preview.highConfidenceCount || 0)} passed the running-balance check.</p>
+            <p class="small">Green rows balance mathematically. Gold rows need a person to compare them with the original statement before ticking them.</p>
+            ${preview.duplicateFile ? '<p><strong>This exact file was imported before.</strong> Rows will be quarantined as possible duplicates unless the earlier import is investigated.</p>' : ''}
+          </div>
+          ${originalPreview}
+          <div class="panel" style="box-shadow:none; margin-top:12px;">
+            <div class="action-row">
+              <button class="action secondary" type="button" id="selectVerifiedRows">Select Verified Rows</button>
+              <button class="action secondary" type="button" id="selectCompleteRows">Select All Complete Rows</button>
+              <button class="action secondary" type="button" id="clearStatementRows">Clear Selection</button>
+            </div>
+            <div class="form-grid" style="margin-top:12px;">
+              <div>
+                <label for="bulkStatementCategory">Apply classification to selected matching rows</label>
+                <select id="bulkStatementCategory">
+                  <option value="">Choose classification</option>
+                  ${(state.finance.categories || []).map(function(category) {
+                    return `<option value="${escapeAttr(category.categoryId)}" data-category-type="${escapeAttr(category.categoryType)}">${escapeHtml(category.categoryType + ' — ' + category.categoryName)}</option>`;
+                  }).join('')}
+                </select>
+              </div>
+              <div style="align-self:end;"><button class="action secondary" type="button" id="applyBulkStatementCategory">Apply To Selected</button></div>
+            </div>
+          </div>
+          <form id="statementCommitForm">
+            <div class="statement-workbench">
+              ${rows.map(renderUnifiedStatementRow).join('') || '<p class="muted">No complete rows were found. Use the manual statement tool below.</p>'}
+            </div>
+            ${rows.length ? `<div class="action-row"><button class="action" type="submit">Send Classified Rows To Publisher</button><button class="action secondary" type="button" id="saveStatementDraft">Save and Continue Later</button><button class="action secondary" type="button" id="saveReviewRows">Save Selected As Needs Review</button></div>` : ''}
+          </form>
+        `;
+        bindUnifiedStatementControls(preview);
+      }
+
+      function renderUnifiedStatementMapping(preview) {
+        const options = [{ value: '', label: 'Not used' }].concat((preview.headers || []).map(function(header) { return { value: header, label: header }; }));
+        const fields = [
+          { key: 'date', label: 'Date column' },
+          { key: 'description', label: 'Description column' },
+          { key: 'moneyIn', label: 'Money-in column' },
+          { key: 'moneyOut', label: 'Money-out column' },
+          { key: 'amount', label: 'Signed amount column' },
+          { key: 'balance', label: 'Running balance column' },
+          { key: 'reference', label: 'Reference column' }
+        ];
+        document.getElementById('statementWorkbench').innerHTML = `
+          <hr><h3>Match the Bank Columns</h3>
+          <p class="muted">The bank used unfamiliar headings. Choose which column contains each item.</p>
+          <form id="unifiedMappingForm" class="form-grid">
+            ${fields.map(function(field) {
+              return selectField(field.label, field.key, options.map(function(option) {
+                return { value: option.value, label: option.label, selected: option.value === preview.suggestedMapping[field.key] };
+              }));
+            }).join('')}
+            <div style="grid-column:1/-1;"><button class="action" type="submit">Continue To Statement Review</button></div>
+          </form>
+        `;
+        document.getElementById('unifiedMappingForm').addEventListener('submit', function(event) {
+          event.preventDefault();
+          showBusy('Applying the bank column choices...');
+          google.script.run
+            .withSuccessHandler(function(rows) {
+              hideBusy();
+              preview.rows = rows;
+              preview.needsMapping = false;
+              preview.parserProfile = 'Officer-confirmed column mapping';
+              preview.highConfidenceCount = rows.filter(function(row) { return row.confidence === 'High'; }).length;
+              preview.reviewCount = rows.length - preview.highConfidenceCount;
+              renderUnifiedStatementWorkbench(preview);
+            })
+            .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+            .previewMappedBankStatement({ headers: preview.headers, rawRows: preview.rawRows, mapping: readFormValues(event.target) });
+        });
+      }
+
+      function renderUnifiedStatementRow(row, index) {
+        const type = Number(row.moneyIn || 0) > 0 ? 'Money In' : 'Money Out';
+        const verified = row.confidence === 'High';
+        const selectedCategory = row.categoryId || row.suggestedCategoryId || '';
+        const selectedForUse = Object.prototype.hasOwnProperty.call(row, 'include') ? row.include : verified;
+        const categories = (state.finance.categories || []).filter(function(category) { return category.categoryType === type; });
+        return `
+          <article class="statement-card ${verified ? 'verified' : ''}" data-workbench-row="${index}" data-transaction-type="${escapeAttr(type)}" data-confidence="${escapeAttr(row.confidence || 'Review')}">
+            <div class="statement-card-head">
+              <input type="checkbox" name="Include Row" ${selectedForUse ? 'checked' : ''} aria-label="Include row ${index + 1}">
+              <div><strong>${escapeHtml(type)}: ${formatMoney(type === 'Money In' ? row.moneyIn : row.moneyOut)}</strong><br><span class="small muted">Row ${escapeHtml(row.rowNumber || index + 1)} · Balance ${formatMoney(row.runningBalance || 0)}</span></div>
+              <span class="badge ${verified ? 'ok' : 'warn'}">${escapeHtml(verified ? 'Balance verified' : 'Check original')}</span>
+            </div>
+            ${row.reviewReason ? `<p class="message small">${escapeHtml(row.reviewReason)}</p>` : ''}
+            <div class="statement-fields">
+              <div>${inputField('Date', 'Statement Date', isoToDisplayDate(row.statementDate || ''))}</div>
+              <div>${selectField('Classification', 'Category ID', [{ value: '', label: 'Leave for later review' }].concat(categories.map(function(category) {
+                return { value: category.categoryId, label: category.categoryName, selected: category.categoryId === selectedCategory };
+              })))}</div>
+              <div class="statement-description">${textAreaField('Bank description', 'Description', row.description || '')}</div>
+              <div>${inputField('Money In', 'Money In', row.moneyIn || '')}</div>
+              <div>${inputField('Money Out', 'Money Out', row.moneyOut || '')}</div>
+              <div>${inputField('Running Balance', 'Running Balance', row.runningBalance || '')}</div>
+              <div>${inputField('Reference', 'Reference Number', row.referenceNumber || '')}</div>
+              <div>${inputField('Payer or payee', 'Counterparty', row.counterparty || '')}</div>
+              <div>${selectField('Fund or project', 'Fund ID', [{ value: '', label: 'General / none', selected: !row.fundId }].concat((state.finance.funds || []).map(function(fund) {
+                return { value: fund.fundId, label: fund.fundName, selected: fund.fundId === row.fundId };
+              })))}</div>
+              <input type="hidden" name="Source Text" value="${escapeAttr(row.sourceText || '')}">
+              <input type="hidden" name="Row Number" value="${escapeAttr(row.rowNumber || index + 1)}">
+              <input type="hidden" name="Review Reason" value="${escapeAttr(row.reviewReason || '')}">
+              <input type="hidden" name="Balance Check" value="${escapeAttr(row.balanceCheck || '')}">
+            </div>
+          </article>
+        `;
+      }
+
+      function bindUnifiedStatementControls(preview) {
+        function setSelection(mode) {
+          document.querySelectorAll('[data-workbench-row]').forEach(function(card) {
+            card.querySelector('[name="Include Row"]').checked = mode === 'all' || (mode === 'verified' && card.dataset.confidence === 'High');
+          });
+        }
+        document.getElementById('selectVerifiedRows').onclick = function() { setSelection('verified'); };
+        document.getElementById('selectCompleteRows').onclick = function() {
+          if (confirm('Select every complete row only after comparing gold rows with the original statement. Continue?')) { setSelection('all'); }
+        };
+        document.getElementById('clearStatementRows').onclick = function() { setSelection('none'); };
+        document.getElementById('applyBulkStatementCategory').onclick = function() {
+          const select = document.getElementById('bulkStatementCategory');
+          const option = select.options[select.selectedIndex];
+          if (!select.value) { alert('Choose a classification first.'); return; }
+          document.querySelectorAll('[data-workbench-row]').forEach(function(card) {
+            if (card.querySelector('[name="Include Row"]').checked && card.dataset.transactionType === option.dataset.categoryType) {
+              card.querySelector('[name="Category ID"]').value = select.value;
+            }
+          });
+        };
+        document.getElementById('statementCommitForm').addEventListener('submit', function(event) {
+          event.preventDefault();
+          commitUnifiedStatement(preview, false);
+        });
+        document.getElementById('saveStatementDraft').onclick = function() { saveStatementDraft(preview); };
+        document.getElementById('saveReviewRows').onclick = function() { commitUnifiedStatement(preview, true); };
+      }
+
+      function readUnifiedStatementRows(forceReview, includeAll) {
+        return Array.prototype.map.call(document.querySelectorAll('[data-workbench-row]'), function(card) {
+          const values = readFormValues(card);
+          return {
+            include: card.querySelector('[name="Include Row"]').checked,
+            statementDate: displayToIsoDate(values['Statement Date']) || values['Statement Date'],
+            description: values.Description,
+            moneyIn: values['Money In'],
+            moneyOut: values['Money Out'],
+            runningBalance: values['Running Balance'],
+            referenceNumber: values['Reference Number'],
+            counterparty: values.Counterparty,
+            categoryId: forceReview ? '' : values['Category ID'],
+            fundId: values['Fund ID'],
+            sourceText: values['Source Text'],
+            rowNumber: values['Row Number'],
+            confidence: card.dataset.confidence,
+            reviewReason: values['Review Reason'],
+            balanceCheck: values['Balance Check'],
+            resolution: forceReview ? 'Needs Review' : 'Classify'
+          };
+        }).filter(function(row) { return includeAll || row.include; });
+      }
+
+      function commitUnifiedStatement(preview, forceReview) {
+        const rows = readUnifiedStatementRows(forceReview);
+        if (!rows.length) { alert('Select at least one reviewed row.'); return; }
+        showBusy(forceReview ? 'Saving rows for later review...' : 'Saving classifications and preparing Publisher records...');
+        google.script.run
+          .withSuccessHandler(function(result) {
+            hideBusy();
+            refreshBankStatements('Statement saved: ' + result.transactionsPrepared + ' classified record(s), ' + result.reviewCount + ' needing review, and ' + result.duplicateCount + ' duplicate(s) quarantined.');
+          })
+          .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+          .commitStatementWorkbench({
+            accountId: preview.accountId,
+            fileName: preview.fileName,
+            fileId: preview.fileId,
+            documentId: preview.documentId,
+            fileHash: preview.fileHash,
+            sourceFormat: preview.sourceFormat,
+            parserProfile: preview.parserProfile,
+            draftId: preview.draftId || '',
+            rows: rows
+          });
+      }
+
+      function saveStatementDraft(preview) {
+        const rows = readUnifiedStatementRows(false, true);
+        showBusy('Saving the statement review...');
+        google.script.run
+          .withSuccessHandler(function(result) { hideBusy(); refreshBankStatements('Statement review saved: ' + result.draftId); })
+          .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+          .saveStatementReviewDraft({
+            accountId: preview.accountId,
+            fileName: preview.fileName,
+            fileId: preview.fileId,
+            documentId: preview.documentId,
+            fileHash: preview.fileHash,
+            sourceFormat: preview.sourceFormat,
+            parserProfile: preview.parserProfile,
+            duplicateFile: preview.duplicateFile,
+            draftId: preview.draftId || '',
+            rows: rows
+          });
+      }
+
+      function resumeStatementDraft(draftId) {
+        showBusy('Opening the saved statement review...');
+        google.script.run
+          .withSuccessHandler(function(preview) {
+            hideBusy();
+            preview.highConfidenceCount = (preview.rows || []).filter(function(row) { return row.confidence === 'High'; }).length;
+            preview.reviewCount = (preview.rows || []).length - preview.highConfidenceCount;
+            preview.balanceBreakCount = (preview.rows || []).filter(function(row) { return row.balanceCheck === 'Break'; }).length;
+            state.statementPreview = preview;
+            state.statementObjectUrl = '';
+            if (preview.sourceFormat === 'PDF') {
+              showBusy('Opening the original PDF evidence...');
+              google.script.run
+                .withSuccessHandler(function(evidence) {
+                  hideBusy();
+                  const binary = atob(evidence.base64);
+                  const bytes = new Uint8Array(binary.length);
+                  for (let i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
+                  state.statementObjectUrl = URL.createObjectURL(new Blob([bytes], { type: evidence.mimeType }));
+                  renderUnifiedStatementWorkbench(preview);
+                  document.getElementById('statementWorkbench').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                })
+                .withFailureHandler(function() {
+                  hideBusy();
+                  renderUnifiedStatementWorkbench(preview);
+                  showMessage('Draft opened. The original PDF could not be displayed, but the saved rows are available.');
+                })
+                .getStatementEvidenceForReview(preview.documentId);
+              return;
+            }
+            renderUnifiedStatementWorkbench(preview);
+            document.getElementById('statementWorkbench').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          })
+          .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+          .resumeStatementReviewDraft(draftId);
+      }
+
+      function discardStatementDraft(draftId) {
+        if (!confirm('Discard this saved review? The original bank statement evidence will remain stored.')) { return; }
+        showBusy('Discarding the saved review...');
+        google.script.run
+          .withSuccessHandler(function() { hideBusy(); refreshBankStatements('Saved review discarded.'); })
+          .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+          .discardStatementReviewDraft(draftId);
       }
 
       function submitCsvPreview(event) {
@@ -1600,8 +2502,7 @@
           const mapping = readFormValues(event.target);
           google.script.run
             .withSuccessHandler(function(result) {
-              alert('Imported ' + result.rowsImported + ' bank lines' + (result.duplicateWarning ? ' with duplicate warning.' : '.'));
-              renderBankStatements();
+              refreshBankStatements('Imported ' + result.rowsImported + ' bank lines' + (result.duplicateWarning ? ' with duplicate warning.' : '.'));
             })
             .withFailureHandler(function(error) {
               alert(error.message || String(error));
@@ -1615,6 +2516,181 @@
         });
       }
 
+      function submitPdfPreview(event) {
+        event.preventDefault();
+        const accountId = event.target.querySelector('[name="Account ID"]').value;
+        const file = event.target.querySelector('input[type="file"]').files[0];
+        if (!file) {
+          alert('Choose a PDF file first.');
+          return;
+        }
+
+        showBusy('Extracting PDF...');
+        readFileAsBase64(file, function(base64) {
+          google.script.run
+            .withSuccessHandler(function(preview) {
+              hideBusy();
+              renderPdfPreview(preview, accountId);
+            })
+            .withFailureHandler(function(error) {
+              hideBusy();
+              alert(error.message || String(error));
+            })
+            .previewBankPdf({
+              fileName: file.name,
+              base64: base64
+            });
+        });
+      }
+
+      function renderPdfPreview(preview, accountId) {
+        document.getElementById('pdfPreview').innerHTML = `
+          <hr>
+          <h3>PDF Review</h3>
+          <p class="muted">${escapeHtml(preview.rowCount)} possible rows found using ${escapeHtml(preview.parserProfile || 'automatic review')}. ${escapeHtml(preview.highConfidenceCount || 0)} are ready to import; ${escapeHtml(preview.reviewCount || 0)} need review.</p>
+          ${preview.needsManualReview ? `
+            <div class="message warn">
+              <p>No complete statement rows were detected automatically. The PDF text is shown below so you can copy details into manual rows.</p>
+            </div>
+          ` : preview.reviewCount ? `
+            <div class="message warn">
+              <p>Rows marked Review are not ticked automatically. Check them only if the date, description, amount, and balance look correct.</p>
+            </div>
+          ` : ''}
+          <form id="pdfImportForm">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Use</th>
+                    <th>Check</th>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Money In</th>
+                    <th>Money Out</th>
+                    <th>Balance</th>
+                    <th>Reference</th>
+                  </tr>
+                </thead>
+                <tbody id="pdfReviewRows">
+                  ${preview.rows.map(function(row, index) {
+                    return renderPdfReviewRow(row, index);
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+            <div class="action-row">
+              <button class="action" type="submit">Import Reviewed PDF Lines</button>
+              <button class="action secondary" type="button" id="addPdfRowButton">Add Manual Row</button>
+              <button class="action secondary" type="button" id="tickHighPdfRowsButton">Tick Ready Rows</button>
+              <button class="action secondary" type="button" id="tickAllPdfRowsButton">Tick All</button>
+              <button class="action secondary" type="button" id="untickPdfRowsButton">Untick All</button>
+            </div>
+          </form>
+          ${preview.extractedTextPreview && preview.extractedTextPreview.length ? `
+            <h3>Extracted PDF Text</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Line</th><th>Extracted text</th></tr></thead>
+                <tbody>
+                  ${preview.extractedTextPreview.map(function(line, index) {
+                    return `<tr><td>${index + 1}</td><td>${escapeHtml(line)}</td></tr>`;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : ''}
+        `;
+
+        document.getElementById('addPdfRowButton').addEventListener('click', function() {
+          const tbody = document.getElementById('pdfReviewRows');
+          tbody.insertAdjacentHTML('beforeend', renderPdfReviewRow({
+            statementDate: '',
+            description: '',
+            moneyIn: '',
+            moneyOut: '',
+            runningBalance: '',
+            referenceNumber: ''
+          }, tbody.children.length));
+        });
+
+        document.getElementById('tickHighPdfRowsButton').addEventListener('click', function() {
+          document.querySelectorAll('#pdfImportForm [data-pdf-row]').forEach(function(row) {
+            row.querySelector('[name="Use Row"]').checked = row.dataset.confidence === 'High';
+          });
+        });
+
+        document.getElementById('tickAllPdfRowsButton').addEventListener('click', function() {
+          document.querySelectorAll('#pdfImportForm input[name="Use Row"]').forEach(function(input) {
+            input.checked = true;
+          });
+        });
+
+        document.getElementById('untickPdfRowsButton').addEventListener('click', function() {
+          document.querySelectorAll('#pdfImportForm input[name="Use Row"]').forEach(function(input) {
+            input.checked = false;
+          });
+        });
+
+        document.getElementById('pdfImportForm').addEventListener('submit', function(event) {
+          event.preventDefault();
+          const rows = readPdfReviewRows();
+          if (!rows.length) {
+            alert('Tick at least one reviewed row to import.');
+            return;
+          }
+          google.script.run
+            .withSuccessHandler(function(result) {
+              refreshBankStatements('Imported ' + result.rowsImported + ' PDF bank lines' + (result.duplicateWarning ? ' with duplicate warning.' : '.'));
+            })
+            .withFailureHandler(function(error) {
+              alert(error.message || String(error));
+            })
+            .importBankPdfRows({
+              accountId: accountId,
+              fileName: preview.fileName,
+              fileId: preview.fileId,
+              documentId: preview.documentId,
+              fileHash: preview.fileHash,
+              rows: rows
+            });
+        });
+      }
+
+      function renderPdfReviewRow(row, index) {
+        const confidence = row.confidence || 'Manual';
+        const checked = confidence === 'Review' ? '' : 'checked';
+        return `
+          <tr data-pdf-row="${index}" data-confidence="${escapeAttr(confidence)}">
+            <td><input type="checkbox" name="Use Row" ${checked}></td>
+            <td><span class="badge ${confidence === 'High' || confidence === 'Manual' ? 'ok' : 'warn'}">${escapeHtml(confidence === 'High' ? 'Ready' : confidence)}</span></td>
+            <td><input name="Statement Date" value="${escapeAttr(isoToDisplayDate(row.statementDate))}" placeholder="dd-mm-yyyy"></td>
+            <td><input name="Description" value="${escapeAttr(row.description)}" title="${escapeAttr(row.sourceText || '')}"></td>
+            <td><input name="Money In" value="${escapeAttr(row.moneyIn || '')}" inputmode="decimal"></td>
+            <td><input name="Money Out" value="${escapeAttr(row.moneyOut || '')}" inputmode="decimal"></td>
+            <td><input name="Running Balance" value="${escapeAttr(row.runningBalance || '')}" inputmode="decimal"></td>
+            <td><input name="Reference Number" value="${escapeAttr(row.referenceNumber || '')}"></td>
+          </tr>
+        `;
+      }
+
+      function readPdfReviewRows() {
+        return Array.prototype.map.call(document.querySelectorAll('#pdfImportForm [data-pdf-row]'), function(row) {
+          if (!row.querySelector('[name="Use Row"]').checked) {
+            return null;
+          }
+          return {
+            statementDate: displayToIsoDate(row.querySelector('[name="Statement Date"]').value) || row.querySelector('[name="Statement Date"]').value,
+            description: row.querySelector('[name="Description"]').value,
+            moneyIn: row.querySelector('[name="Money In"]').value,
+            moneyOut: row.querySelector('[name="Money Out"]').value,
+            runningBalance: row.querySelector('[name="Running Balance"]').value,
+            referenceNumber: row.querySelector('[name="Reference Number"]').value,
+            notes: 'Reviewed PDF extraction'
+          };
+        }).filter(Boolean);
+      }
+
       function submitPdfUpload(event) {
         event.preventDefault();
         const file = event.target.querySelector('input[type="file"]').files[0];
@@ -1625,14 +2701,14 @@
         readFileAsBase64(file, function(base64) {
           google.script.run
             .withSuccessHandler(function(result) {
-              alert('PDF stored: ' + result.fileName);
-              renderBankStatements();
+              refreshBankStatements('Statement file stored: ' + result.fileName);
             })
             .withFailureHandler(function(error) {
               alert(error.message || String(error));
             })
             .uploadBankStatementPdf({
               fileName: file.name,
+              mimeType: file.type,
               base64: base64
             });
         });
@@ -1642,8 +2718,7 @@
         event.preventDefault();
         google.script.run
           .withSuccessHandler(function(result) {
-            alert('Bank line saved: ' + result.bankLineId + (result.duplicateWarning ? ' with duplicate warning.' : '.'));
-            renderBankStatements();
+            refreshBankStatements('Bank line saved: ' + result.bankLineId + (result.duplicateWarning ? ' with duplicate warning.' : '.'));
           })
           .withFailureHandler(function(error) {
             alert(error.message || String(error));
@@ -1674,37 +2749,140 @@
       function renderBankLines(lines) {
         return `
           <section class="panel">
-            <h3>Recent Bank Lines</h3>
-            ${lines.length ? `
+            <h3>Bank Lines</h3>
+            <form id="bankLineFilterForm" class="form-grid">
+              ${selectField('Account', 'Account Filter', [{ value: '', label: 'All accounts' }].concat((state.finance.accounts || []).map(accountOption)))}
+              ${selectField('Status', 'Status Filter', [
+                { value: '', label: 'All statuses' },
+                { value: 'Needs Review', label: 'Needs Review' },
+                { value: 'Ready to Publish', label: 'Ready to Publish' },
+                { value: 'Matched', label: 'Matched' },
+                { value: 'Duplicate Quarantined', label: 'Duplicate Quarantined' },
+                { value: 'Imported', label: 'Imported' }
+              ])}
+              ${inputField('Search description or reference', 'Search', '')}
+              ${inputField('Start date (dd-mm-yyyy)', 'Start Date', '')}
+              ${inputField('End date (dd-mm-yyyy)', 'End Date', '')}
+              <div style="align-self:end;"><button class="action secondary" type="submit">Search Bank Lines</button></div>
+            </form>
+            <div id="bankLineQuickClassify"></div>
+            <div id="bankLineResults" style="margin-top:12px;">${renderBankLineResults(lines, { page: 1, pageCount: 1, total: lines.length })}</div>
+          </section>
+        `;
+      }
+
+      function renderBankLineResults(lines, paging) {
+        return `${lines.length ? `
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>Date</th><th>Description</th><th>Money In</th><th>Money Out</th><th>Balance</th><th>Status</th></tr></thead>
+                  <thead><tr><th>Date</th><th>Description</th><th>Money In</th><th>Money Out</th><th>Balance</th><th>Status</th><th>Action</th></tr></thead>
                   <tbody>
                     ${lines.map(function(line) {
-                      return `<tr><td>${escapeHtml(line.statementDate)}</td><td>${escapeHtml(line.description)}<br><span class="small muted">${escapeHtml(line.referenceNumber || '')}</span></td><td>${formatMoney(line.moneyIn)}</td><td>${formatMoney(line.moneyOut)}</td><td>${formatMoney(line.runningBalance)}</td><td><span class="badge">${escapeHtml(line.status)}</span></td></tr>`;
+                      return `<tr><td>${escapeHtml(line.statementDate)}</td><td>${escapeHtml(line.description)}<br><span class="small muted">${escapeHtml(line.referenceNumber || '')}</span></td><td>${formatMoney(line.moneyIn)}</td><td>${formatMoney(line.moneyOut)}</td><td>${formatMoney(line.runningBalance)}</td><td><span class="badge">${escapeHtml(line.status)}</span></td><td>${line.status === 'Duplicate Quarantined' && state.finance.canEnterFinance ? `<button class="action secondary" type="button" data-resolve-duplicate="${escapeAttr(line.bankLineId)}" data-decision="Accept As Unique">Accept Unique</button><br><br><button class="action danger" type="button" data-resolve-duplicate="${escapeAttr(line.bankLineId)}" data-decision="Confirm Duplicate">Confirm Duplicate</button>` : (state.finance.canEnterFinance && ['Needs Review','Imported','Manual Entry'].indexOf(line.status) !== -1 ? `<button class="action secondary" type="button" data-quick-classify="${escapeAttr(line.bankLineId)}">Classify</button>` : '')}</td></tr>`;
                     }).join('')}
                   </tbody>
                 </table>
               </div>
-            ` : '<p class="muted">No bank lines yet.</p>'}
-          </section>
-        `;
+            ` : '<p class="muted">No bank lines match this search.</p>'}
+            <div class="action-row">
+              <button class="action secondary" type="button" data-bank-page="${Math.max(1, paging.page - 1)}" ${paging.page <= 1 ? 'disabled' : ''}>Previous</button>
+              <button class="action secondary" type="button" data-bank-page="${Math.min(paging.pageCount, paging.page + 1)}" ${paging.page >= paging.pageCount ? 'disabled' : ''}>Next</button>
+            </div>
+            <p class="muted small">Page ${escapeHtml(paging.page)} of ${escapeHtml(paging.pageCount)} · ${escapeHtml(paging.total)} line(s)</p>`;
+      }
+
+      function loadFilteredBankLines(page) {
+        const values = readFormValues(document.getElementById('bankLineFilterForm'));
+        showBusy('Searching bank lines...');
+        google.script.run
+          .withSuccessHandler(function(result) {
+            hideBusy();
+            state.filteredBankLines = result.lines;
+            document.getElementById('bankLineResults').innerHTML = renderBankLineResults(result.lines, result);
+            document.querySelectorAll('[data-bank-page]').forEach(function(button) {
+              button.onclick = function() { loadFilteredBankLines(Number(button.dataset.bankPage)); };
+            });
+            bindDuplicateResolutionButtons();
+            bindQuickClassifyButtons();
+          })
+          .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+          .queryBankStatementLines({
+            accountId: values['Account Filter'],
+            status: values['Status Filter'],
+            search: values.Search,
+            startDate: values['Start Date'],
+            endDate: values['End Date'],
+            page: page,
+            pageSize: 25
+          });
+      }
+
+      function bindDuplicateResolutionButtons() {
+        document.querySelectorAll('[data-resolve-duplicate]').forEach(function(button) {
+          button.onclick = function() {
+            const note = prompt(button.dataset.decision + ' note', '');
+            if (note === null) { return; }
+            google.script.run
+              .withSuccessHandler(function() { loadFilteredBankLines(1); showMessage('Duplicate review saved.'); })
+              .withFailureHandler(function(error) { alert(error.message || String(error)); })
+              .resolveDuplicateBankLine(button.dataset.resolveDuplicate, button.dataset.decision, note);
+          };
+        });
+      }
+
+      function bindQuickClassifyButtons() {
+        document.querySelectorAll('[data-quick-classify]').forEach(function(button) {
+          button.onclick = function() { openQuickBankLineClassification(button.dataset.quickClassify); };
+        });
+      }
+
+      function openQuickBankLineClassification(bankLineId) {
+        const line = (state.filteredBankLines || []).filter(function(item) { return item.bankLineId === bankLineId; })[0];
+        if (!line) { alert('Refresh the bank-line search and try again.'); return; }
+        const transactionType = line.moneyIn > 0 ? 'Money In' : 'Money Out';
+        document.getElementById('bankLineQuickClassify').innerHTML = `
+          <section class="message" style="margin-top:12px;"><h3>Classify ${escapeHtml(bankLineId)}</h3>
+            <p><strong>${escapeHtml(transactionType)} ${formatMoney(line.moneyIn > 0 ? line.moneyIn : line.moneyOut)}</strong> - ${escapeHtml(line.description)}</p>
+            <form id="quickClassifyForm" class="form-grid">
+              ${selectField('Classification', 'Category ID', state.finance.categories.filter(function(category) { return category.categoryType === transactionType; }).map(categoryOption))}
+              ${selectField('Fund or project', 'Fund ID', [{ value: '', label: 'General / none' }].concat(state.finance.funds.map(fundOption)))}
+              ${inputField('Payer or payee', 'Payer or Payee', '')}
+              <div style="grid-column:1/-1;">${textAreaField('Description', 'Description', line.description)}</div>
+              <div class="action-row" style="grid-column:1/-1;"><button class="action" type="submit">Send To Publisher</button><button class="action secondary" type="button" id="cancelQuickClassify">Cancel</button></div>
+            </form>
+          </section>`;
+        document.getElementById('cancelQuickClassify').onclick = function() { document.getElementById('bankLineQuickClassify').innerHTML = ''; };
+        document.getElementById('quickClassifyForm').onsubmit = function(event) {
+          event.preventDefault();
+          google.script.run
+            .withSuccessHandler(function() { refreshBankStatements('Bank line sent to the Publisher.'); })
+            .withFailureHandler(function(error) { alert(error.message || String(error)); })
+            .createTransactionFromBankLine(bankLineId, readFormValues(event.target));
+        };
       }
 
       function drawAdministration(data) {
         document.getElementById('app').innerHTML = `
           <section class="panel">
             <h2>Administration</h2>
-            <p class="muted">Manage app access here instead of editing the Users sheet.</p>
+            <p class="muted">App ${escapeHtml(data.appVersion)} · Manage app access here instead of editing the Users sheet.</p>
           </section>
+          ${data.schemaVersion !== data.targetSchemaVersion ? `<section class="panel message"><h3>Data Upgrade Required</h3><p>Upgrade the data structure before using statement review, transfers, or corrections. An automatic backup is created first.</p><button class="action" type="button" id="prominentUpgradeSchemaButton">Upgrade Data Structure</button></section>` : ''}
           <section class="panel">
             <h3>Maintenance</h3>
+            <p class="muted small">Data structure: ${escapeHtml(data.schemaVersion)} (current ${escapeHtml(data.targetSchemaVersion)}) · Last backup: ${escapeHtml(data.backupHealth.lastBackupAt ? formatShortDateTime(data.backupHealth.lastBackupAt) : 'Not recorded')} · ${escapeHtml(data.backupHealth.lastBackupStatus)}</p>
             <div class="action-row">
               <button class="action secondary" type="button" id="backupNowButton">Back Up Data Now</button>
               <button class="action secondary" type="button" id="backupTriggerButton">Set Monthly Backup</button>
+              <button class="action secondary" type="button" id="upgradeSchemaButton">Upgrade Data Structure</button>
+              <button class="action secondary" type="button" id="rebuildBalancesButton">Verify and Rebuild Balances</button>
               <button class="action secondary" type="button" id="demoDataButton">Add Demo Test Data</button>
             </div>
           </section>
+          ${data.pendingAuditEntries ? `<section class="panel message error"><h3>Audit Recovery Required</h3><p>${escapeHtml(data.pendingAuditEntries)} audit entry or entries are safely queued because the Audit Log could not be updated.</p><button class="action" type="button" id="repairAuditButton">Repair Audit Log</button></section>` : ''}
+          ${data.recoveryImports.length ? `<section class="panel message error"><h3>Interrupted Statement Imports</h3><p>An import stopped part-way through. Repair it before officers continue with that file.</p>${data.recoveryImports.map(function(item) {
+            return `<div class="request-card"><strong>${escapeHtml(item.importId)} - ${escapeHtml(item.fileName)}</strong><p class="small">${escapeHtml(item.error)}</p><button class="action" type="button" data-repair-import="${escapeAttr(item.importId)}">Repair Import</button></div>`;
+          }).join('')}</section>` : ''}
           <section class="panel">
             <h3>Add or Update User</h3>
             <form id="userAccessForm" class="form-grid">
@@ -1750,12 +2928,53 @@
         document.getElementById('backupNowButton').addEventListener('click', runBackupNow);
         document.getElementById('backupTriggerButton').addEventListener('click', createBackupTrigger);
         document.getElementById('demoDataButton').addEventListener('click', seedDemoDataFromUi);
+        document.getElementById('upgradeSchemaButton').addEventListener('click', upgradeSchemaFromUi);
+        const prominentUpgrade = document.getElementById('prominentUpgradeSchemaButton');
+        if (prominentUpgrade) { prominentUpgrade.addEventListener('click', upgradeSchemaFromUi); }
+        document.getElementById('rebuildBalancesButton').addEventListener('click', rebuildBalancesFromUi);
+        const repairAuditButton = document.getElementById('repairAuditButton');
+        if (repairAuditButton) { repairAuditButton.addEventListener('click', repairAuditLogFromUi); }
+        document.querySelectorAll('[data-repair-import]').forEach(function(button) {
+          button.onclick = function() {
+            showBusy('Repairing the interrupted statement import...');
+            google.script.run
+              .withSuccessHandler(function(result) { hideBusy(); showMessage('Import repaired. ' + result.transactionsPrepared + ' transaction(s) prepared.'); renderAdministration(); })
+              .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+              .repairFailedStatementImport(button.dataset.repairImport);
+          };
+        });
         document.querySelectorAll('[data-edit-user]').forEach(function(button) {
           button.addEventListener('click', editUserAccess);
         });
         document.querySelectorAll('[data-deactivate-user]').forEach(function(button) {
           button.addEventListener('click', deactivateUserAccessFromUi);
         });
+      }
+
+      function repairAuditLogFromUi() {
+        showBusy('Repairing the Audit Log...');
+        google.script.run
+          .withSuccessHandler(function(result) { hideBusy(); showMessage(result.recovered + ' audit entry or entries recovered.'); renderAdministration(); })
+          .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+          .repairPendingAuditLogs();
+      }
+
+      function upgradeSchemaFromUi() {
+        if (!confirm('Create a pre-upgrade backup, then append the new required columns? Existing columns and records will not be removed.')) { return; }
+        showBusy('Upgrading the data structure...');
+        google.script.run
+          .withSuccessHandler(function(result) { hideBusy(); showMessage('Data structure upgraded to ' + result.schemaVersion + '.'); renderAdministration(); })
+          .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+          .upgradeDataSchema();
+      }
+
+      function rebuildBalancesFromUi() {
+        if (!confirm('Recalculate account balances from opening balances and published records?')) { return; }
+        showBusy('Verifying account balances...');
+        google.script.run
+          .withSuccessHandler(function(result) { hideBusy(); showMessage(result.accounts.length + ' account balance(s) verified.'); })
+          .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+          .rebuildAccountBalances();
       }
 
       function renderUsersTable(users) {
@@ -2079,8 +3298,8 @@
             <h3>Generate Report</h3>
             <form id="reportForm" class="form-grid">
               ${selectField('Report type', 'Report Type', [
-                { value: 'Income and Expenditure Statement', label: 'Income and Expenditure Statement' },
-                { value: 'Statement of Financial Position', label: 'Statement of Financial Position' },
+                { value: 'Receipts and Payments Statement', label: 'Receipts and Payments Statement' },
+                { value: 'Statement of Funds Available', label: 'Statement of Funds Available' },
                 { value: 'Monthly Financial Summary', label: 'Monthly Financial Summary' },
                 { value: 'Quarterly Financial Summary', label: 'Quarterly Financial Summary' },
                 { value: 'Annual Financial Summary', label: 'Annual Financial Summary' },
@@ -2088,7 +3307,7 @@
               ])}
               ${dateInputField('Start Date', 'Start Date', todayDisplay())}
               ${dateInputField('End Date', 'End Date', todayDisplay())}
-              <p class="muted small" style="grid-column: 1 / -1;">For Statement of Financial Position, use End Date as the "as at" date.</p>
+              <p class="muted small" style="grid-column: 1 / -1;">For Statement of Funds Available, use End Date as the "as at" date.</p>
               <div class="action-row" style="grid-column: 1 / -1;">
                 <button class="action" type="submit">View Report</button>
                 <button class="action secondary" type="button" id="exportReportButton">Export CSV</button>
@@ -2124,11 +3343,11 @@
       }
 
       function drawReportOutput(report) {
-        if (report.reportType === 'Income and Expenditure Statement') {
+        if (report.reportType === 'Income and Expenditure Statement' || report.reportType === 'Receipts and Payments Statement') {
           drawIncomeExpenditureOutput(report);
           return;
         }
-        if (report.reportType === 'Statement of Financial Position') {
+        if (report.reportType === 'Statement of Financial Position' || report.reportType === 'Statement of Funds Available') {
           drawFinancialPositionOutput(report);
           return;
         }
@@ -2151,20 +3370,20 @@
       function drawIncomeExpenditureOutput(report) {
         document.getElementById('reportOutput').innerHTML = `
           <section class="panel">
-            <h3>Income and Expenditure Statement</h3>
+            <h3>${escapeHtml(report.reportType)}</h3>
             <p class="muted">${escapeHtml(report.periodLabel)} | Generated ${escapeHtml(formatShortDateTime(report.generatedAt))}</p>
             <div class="grid">
-              ${metricCard('Total Income', formatMoney(report.summary.totalIncome))}
-              ${metricCard('Total Expenditure', formatMoney(report.summary.totalExpenditure))}
-              ${metricCard('Surplus / Deficit', formatMoney(report.summary.surplusDeficit))}
+              ${metricCard('Total Receipts', formatMoney(report.summary.totalIncome))}
+              ${metricCard('Total Payments', formatMoney(report.summary.totalExpenditure))}
+              ${metricCard('Net Receipts / Payments', formatMoney(report.summary.surplusDeficit))}
             </div>
           </section>
           <section class="panel">
-            <h3>Income</h3>
+            <h3>Receipts</h3>
             ${renderAmountRows(report.incomeRows, 'No income records for this period.')}
           </section>
           <section class="panel">
-            <h3>Expenditure</h3>
+            <h3>Payments</h3>
             ${renderAmountRows(report.expenditureRows, 'No expenditure records for this period.')}
           </section>
         `;
@@ -2173,19 +3392,21 @@
       function drawFinancialPositionOutput(report) {
         document.getElementById('reportOutput').innerHTML = `
           <section class="panel">
-            <h3>Statement of Financial Position</h3>
+            <h3>${escapeHtml(report.reportType)}</h3>
             <p class="muted">${escapeHtml(report.periodLabel)} | Generated ${escapeHtml(formatShortDateTime(report.generatedAt))}</p>
+            ${report.currencyWarning ? `<p class="message">${escapeHtml(report.currencyWarning)}</p>` : ''}
             <div class="grid">
-              ${metricCard('Bank Balance', formatMoney(report.summary.bankBalance))}
-              ${metricCard('Cash at Hand', formatMoney(report.summary.cashAtHand))}
-              ${metricCard('Total Funds Available', formatMoney(report.summary.totalFundsAvailable))}
-              ${metricCard('Represented Funds', formatMoney(report.summary.representedFundsTotal))}
+              ${metricCard('Bank Balance', report.mixedCurrencies ? 'See currency totals' : formatMoney(report.summary.bankBalance))}
+              ${metricCard('Cash at Hand', report.mixedCurrencies ? 'See currency totals' : formatMoney(report.summary.cashAtHand))}
+              ${metricCard('Total Funds Available', report.mixedCurrencies ? 'See currency totals' : formatMoney(report.summary.totalFundsAvailable))}
+              ${metricCard('Represented Funds', report.mixedCurrencies ? 'Not combined' : formatMoney(report.summary.representedFundsTotal))}
             </div>
           </section>
           <section class="panel">
             <h3>Funds Available</h3>
             ${renderAmountRows(report.accountRows, 'No active accounts found.')}
           </section>
+          ${report.mixedCurrencies ? `<section class="panel"><h3>Totals By Currency</h3>${renderAmountRows(report.currencyRows, 'No currency totals found.')}</section>` : ''}
           <section class="panel">
             <h3>Represented By</h3>
             ${renderAmountRows(report.fundRows, 'No fund/project balances found.')}
@@ -2204,7 +3425,7 @@
               <thead><tr><th>Description</th><th>Amount</th></tr></thead>
               <tbody>
                 ${rows.map(function(row) {
-                  return `<tr><td>${escapeHtml(row.name)}</td><td>${formatMoney(row.amount)}</td></tr>`;
+                  return `<tr><td>${escapeHtml(row.name)}${row.currency ? `<br><span class="small muted">${escapeHtml(row.currency)}</span>` : ''}</td><td>${formatMoney(row.amount)}</td></tr>`;
                 }).join('')}
               </tbody>
             </table>
@@ -2401,11 +3622,11 @@
         `;
       }
 
-      function inputField(label, name, value) {
+      function inputField(label, name, value, type) {
         return `
           <div>
             <label for="${escapeAttr(name)}">${escapeHtml(label)}</label>
-            <input id="${escapeAttr(name)}" name="${escapeAttr(name)}" value="${escapeAttr(value)}">
+            <input type="${escapeAttr(type || 'text')}" id="${escapeAttr(name)}" name="${escapeAttr(name)}" value="${escapeAttr(value)}">
           </div>
         `;
       }

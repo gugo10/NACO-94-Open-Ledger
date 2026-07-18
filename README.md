@@ -1,8 +1,8 @@
-# NACO'94 Open Ledger
+# NACO'94 Bank Ledger
 
-Clear accounts. Shared trust.
+Bank-first records. Clear reports.
 
-This is a simple Google Apps Script financial transparency and member database system for the National High School Aba Class of 1994 Alumni Association, NACO'94.
+This is a simple Google Apps Script financial transparency and member database system for the National High School Aba Class of 1994 Alumni Association, NACO'94. The finance workflow is bank-first: officers upload or enter bank statement lines, categorise those lines, and Publishers approve the records before members see them.
 
 The project is intentionally small and Google-based:
 
@@ -10,11 +10,11 @@ The project is intentionally small and Google-based:
 - Apps Script HTML Service web interface
 - Google Sheets as the data store
 - Google Drive for bank statements, receipts, invoices, reports, and backups
-- Google account sign-in and a member email allow-list
+- Email-code member sign-in and a member email allow-list
 
-## Current Scope: Complete Stage 1 to Stage 7
+## Current Scope: Stage 1 to Stage 8
 
-Stage 1 builds the foundation. Stage 2 adds the member database basics. Stage 3 adds basic finances. Stage 4 adds bank statement handling. Stage 5 adds bank matching and reconciliation. Stage 6 adds cash counts and simple reports. Stage 7 adds backup, demo data, and final operating guidance.
+Stage 1 builds the foundation. Stage 2 adds the member database basics. Stage 3 adds basic finances. Stage 4 adds bank statement handling. Stage 5 adds bank matching and reconciliation. Stage 6 adds cash counts and simple reports. Stage 7 adds backup and operating guidance. Stage 8 adds the unified statement workbench, balance-checked PDF extraction, real Excel import, duplicate quarantine, internal transfers, visible corrections, and stronger reconciliation controls.
 
 Included:
 
@@ -36,8 +36,8 @@ Included:
 - Birthday day/month storage for private member records
 - Accounts
 - Funds and projects
-- Money In entry
-- Money Out entry
+- Money In entry as a fallback
+- Money Out entry as a fallback
 - Optional receipt/proof upload
 - Transaction marked ready to publish
 - Publisher can publish or send back transactions
@@ -48,14 +48,18 @@ Included:
 - Administrators can import members from CSV or pasted Excel rows
 - CSV bank statement preview and import
 - CSV column mapping
-- Duplicate warning for likely duplicate bank statement lines
-- PDF bank statement storage as evidence
+- Duplicate quarantine for likely duplicate bank statement lines
+- PDF bank statement extraction checked against the statement's running balances
+- Actual PDF, Excel, and CSV statement preview and import
+- Mobile statement cards with classification, fund/project, and payer/payee beside each row
+- Bulk classification for selected rows
 - Manual bank statement line entry
 - Bank statement import log
 - Suggested bank-line matching
 - Manual bank-line to transaction matching
-- Mark bank lines as Needs Review or Internal Transfer
-- Create a ledger record from an unmatched bank line
+- Mark bank lines as Needs Review
+- Prepare both sides of an Internal Transfer without counting it as income or expenditure
+- Categorise an unmatched bank line into one or more ledger records
 - Reconciliation preparation
 - Publisher reconciliation lock
 - Cash count entry
@@ -63,11 +67,12 @@ Included:
 - Cash count review
 - Monthly and annual report summaries
 - Simple report viewer
-- Member-generated Income and Expenditure Statement for any selected period
-- Member-generated Statement of Financial Position as at a selected date
+- Member-generated Receipts and Payments Statement for any selected period
+- Member-generated Statement of Funds Available as at a selected date
+- Visible reversal-and-replacement corrections for published records
 - CSV report export from the Reports screen
 - Manual backup button
-- Monthly backup trigger setup
+- Trigger-safe monthly backup with recorded success/failure and evidence-file checks
 - Demo test data helper
 - Visible working indicator for slow Google Apps Script actions
 - Date entry uses `dd-mm-yyyy` with calendar pickers
@@ -76,7 +81,7 @@ Included:
 Not included yet:
 
 - Complex accounting package features
-- Paid OCR/PDF extraction
+- Guaranteed extraction from every bank PDF format
 - Paid hosting
 
 Those belong to later stages.
@@ -97,7 +102,7 @@ Those belong to later stages.
 - `Maintenance.gs` - Stage 7 backup and demo-data helpers
 - `Access.gs` - Google account and role checks
 - `Audit.gs` - simple audit log writer
-- `TestStage1.gs` - basic Stage 1 and Stage 2 tests
+- `TestStage1.gs` - cumulative Stage 1 through Stage 8 pure-logic tests
 - `Index.html` - mobile-friendly HTML Service interface
 
 ## Recommended Google Drive Structure
@@ -105,14 +110,14 @@ Those belong to later stages.
 Create this under the official NACO'94 Google account. The `setupStage1()` function can create it automatically.
 
 ```text
-NACO'94 Open Ledger
+NACO'94 Bank Ledger
 |
-|-- NACO'94 Open Ledger - Data
+|-- NACO'94 Bank Ledger - Data
 |   `-- Google Sheet containing system data
 |
 |-- Bank Statements
-|   |-- 2026
-|   |-- 2027
+  |   |-- Current Year
+  |   |-- Next Year
 |   `-- Future Years
 |
 |-- Receipts and Invoices
@@ -137,7 +142,7 @@ Do not share the source Google Sheet or Drive folders directly with ordinary mem
 The data spreadsheet is named:
 
 ```text
-NACO'94 Open Ledger - Data
+NACO'94 Bank Ledger - Data
 ```
 
 Stage 1 creates these tabs:
@@ -233,13 +238,13 @@ System Administrators can manage app users and roles from the Administration scr
 1. Open the official NACO'94 Google account.
 2. Create a new Apps Script project.
 3. Add the files in this repository to the Apps Script project.
-4. In the Apps Script editor, run:
+4. In the Apps Script editor, run this from the official owner account:
 
 ```javascript
 setupStage1()
 ```
 
-5. Review the permissions prompt and approve it from the official account.
+5. Review the permissions prompt and approve it from the official account. The app needs permission to send member sign-in codes from the official account.
 6. Confirm that the function returns a spreadsheet URL and root folder URL.
 7. Open the created `Users` sheet.
 8. Add allowed member Google email addresses and roles.
@@ -272,7 +277,8 @@ setupStage1({
 5. Deploy.
 6. Share the web app URL with allowed members.
 
-Access is still checked server-side against the `Users` sheet.
+If Apps Script cannot provide the visitor's email directly, the app asks for the email registered in `Users` and sends a six-digit code to that address. The code expires after 10 minutes; a verified browser remains signed in for up to 30 days. No member needs access to the raw Sheet or Drive folders.
+Google's daily email-sending quota still applies. For the first rollout, invite members in manageable groups instead of asking everyone to request a code at the same time.
 Do not deploy as "user accessing the web app"; ordinary members should not need direct access to the raw Google Sheet or Drive folders.
 
 ## Local Development With clasp
@@ -300,10 +306,10 @@ runStage1Tests()
 Expected result:
 
 ```text
-Stage 1, Stage 2, Stage 3, Stage 4, Stage 5, Stage 6, and Stage 7 tests passed: 36
+Stage 1 through Stage 8 tests passed: 52
 ```
 
-These tests cover pure Stage 1 and Stage 2 logic:
+These tests cover pure Stage 1 through Stage 8 logic:
 
 - Email normalization
 - Role parsing
@@ -331,6 +337,41 @@ These tests cover pure Stage 1 and Stage 2 logic:
 - User access cleanup
 - Statement row formatting
 - Statement row totals
+- PDF statement line parsing
+- Spreadsheet-formula protection
+- Receipt and proof file signature validation
+
+GitHub also runs the same pure tests plus the email-code sign-in flow, manifest, browser-JavaScript, and private-helper checks on every push and pull request.
+
+## PDF Statement Extraction Setup
+
+PDF extraction uses Google's Drive OCR through the Apps Script Advanced Drive Service.
+
+In Apps Script:
+
+1. Click **Services** on the left.
+2. Click **+ Add a service**.
+3. Choose **Drive API**.
+4. Click **Add**.
+5. Save the project.
+
+The app stores the original PDF, creates a temporary extraction document, reads likely statement rows, and checks each row against the change in running balance. A green row passed the mathematical balance check. A gold row must be compared with the original statement before selection. No PDF format is guaranteed, so unclear rows remain available for manual review.
+
+## Required Upgrade For An Existing Installation
+
+Stage 8 adds columns without deleting or moving existing data.
+
+1. Back up the current spreadsheet before deploying the new code.
+2. Save all updated Apps Script files.
+3. Deploy a new web-app version.
+4. Open the app as a System Administrator.
+5. Open **Administration**.
+6. Click **Upgrade Data Structure**.
+7. Confirm the displayed data version is `8.0`.
+8. Click **Verify and Rebuild Balances**.
+9. Run `runStage1Tests()` in Apps Script and confirm all 52 tests pass.
+
+Do not use the new statement workbench, transfers, or corrections until the data structure upgrade succeeds.
 
 ## Manual Stage 1 Test
 
@@ -342,10 +383,10 @@ These tests cover pure Stage 1 and Stage 2 logic:
 6. Deploy the web app.
 7. Open the web app as the System Administrator.
 8. Confirm Administration is visible.
-9. Open the web app as the test member.
-10. Confirm only Dashboard, Finances, Reports, Members, and My Profile are visible.
-11. Open the web app with an unlisted Google account.
-12. Confirm access is denied.
+9. Open the web app as the test member, request a code, and copy the six-digit code from the email.
+10. Enter the code and confirm only Dashboard, Finances, Reports, Members, and My Profile are visible.
+11. Enter an unlisted email and confirm the app gives the generic response but sends no code.
+12. Confirm an unverified visitor cannot see ledger data.
 
 ## Manual Stage 2 Test
 
@@ -404,10 +445,13 @@ Important: the same person should not both enter and publish the same transactio
 ## Manual Stage 4 Test
 
 1. Open the app as a Finance Officer.
-2. Go to Bank Matching.
-3. Upload a CSV bank statement.
-4. Confirm the app shows a preview.
-5. Confirm or adjust these mappings:
+2. Go to Bank Statements.
+3. Under **Upload and Classify a Statement**, upload a PDF statement.
+4. Confirm the original PDF can be opened beside the review cards.
+5. Confirm green rows pass the running-balance check and gold rows show a warning.
+6. Choose a classification for reviewed rows and send them to the Publisher.
+7. Repeat with an Excel statement and confirm the rows are read, not merely stored.
+8. Repeat with a CSV statement. If its headings are unfamiliar, confirm or adjust these mappings:
 
 ```text
 Date column
@@ -418,14 +462,12 @@ Balance column
 Reference column
 ```
 
-6. Import the CSV lines.
-7. Confirm the import appears under Recent CSV Imports.
-8. Confirm imported rows appear under Recent Bank Lines.
-9. Upload the same CSV again and confirm a duplicate warning appears.
-10. Upload a PDF bank statement and confirm it is stored.
-11. Manually enter one bank statement line.
-12. Enter the same manual line again and confirm duplicate warning appears.
-13. Confirm actions appear in the `Audit Log` sheet.
+9. Confirm classified rows appear under Ready to Publish.
+10. Upload the same file again and confirm duplicates are quarantined and cannot be classified or reconciled.
+11. Search for the quarantined line and explicitly choose **Confirm Duplicate** or **Accept Unique**.
+12. Save a statement review, refresh the app, and resume it from Saved Statement Reviews.
+13. Manually enter one bank statement line using the separate tools section and choose its classification before saving.
+14. Confirm actions appear in the `Audit Log` sheet.
 
 Stage 4 stores bank statement evidence and lines. Stage 5 matches bank lines to ledger transactions.
 
@@ -434,20 +476,21 @@ Stage 4 stores bank statement evidence and lines. Stage 5 matches bank lines to 
 1. Make sure at least one bank line exists from Stage 4.
 2. Make sure at least one published transaction exists from Stage 3.
 3. Open the app as a Finance Officer.
-4. Go to Bank Matching.
+4. Go to Bank Statements.
 5. Select an unmatched bank line.
 6. Click Suggest Matches.
 7. Match the bank line to a published transaction with the same amount.
 8. Confirm the match appears under Recent Matches.
 9. Mark another bank line as Needs Review.
-10. Mark another bank line as Internal Transfer.
-11. Use Create Record From Bank Line for a bank line that is not yet in the ledger.
-12. Publish the newly created transaction from the Finances screen.
-13. Prepare a reconciliation for the account and period.
-14. Open the app as a Publisher.
-15. Publish the reconciliation.
-16. Confirm the reconciliation status becomes Locked.
-17. Confirm actions appear in the `Audit Log` sheet.
+10. Mark another bank line as Internal Transfer, select the other association account, and confirm two linked transfer records are prepared.
+11. Use Categorise Bank Line for a bank line that is not yet in the ledger.
+12. For a bulk payment, add split rows and confirm the split total equals the bank amount.
+13. Publish the newly created transaction records from the Finances screen.
+14. Prepare a reconciliation for the account and period.
+15. Open the app as a Publisher.
+16. Publish the reconciliation.
+17. Confirm the reconciliation status becomes Locked.
+18. Confirm actions appear in the `Audit Log` sheet.
 
 ## Manual Stage 6 Test
 
@@ -464,8 +507,8 @@ Stage 4 stores bank statement evidence and lines. Stage 5 matches bank lines to 
 11. Go to Reports.
 12. Generate a Monthly Financial Summary.
 13. Generate an Annual Financial Summary.
-14. Generate an Income and Expenditure Statement for a selected period.
-15. Generate a Statement of Financial Position as at a selected date.
+14. Generate a Receipts and Payments Statement for a selected period.
+15. Generate a Statement of Funds Available as at a selected date.
 16. Confirm published transactions appear in the report.
 17. Confirm cash-count actions appear in the `Audit Log` sheet.
 
@@ -486,11 +529,13 @@ Stage 4 stores bank statement evidence and lines. Stage 5 matches bank lines to 
 Members:
 
 1. Open the web app link.
-2. Use Dashboard to see balances.
-3. Use Finances to see published Money In and Money Out records.
-4. Use Reports to generate summaries.
-5. Use Members to view the directory.
-6. Use My Profile to update details and privacy settings.
+2. If asked, enter the registered Google email, click **Email Me a Code**, then enter the six-digit code from the email.
+3. Use Dashboard to see balances.
+4. Use Finances to see published Money In and Money Out records.
+5. Use Reports to generate summaries.
+6. Use Members to view the directory.
+7. Use My Profile to update details and privacy settings.
+8. On a shared phone or computer, click **Sign Out** when finished.
 
 ## Interface Notes
 
@@ -498,21 +543,26 @@ The app is designed for mobile-first use by non-technical members. The interface
 
 Finance Officers:
 
-1. Use Finances to add Money In and Money Out.
-2. Attach receipts or proof where available.
-3. Use Bank Matching to upload CSV/PDF bank statements.
-4. Use Bank Matching to enter manual bank lines.
-5. Match bank lines to published transactions.
-6. Prepare reconciliations.
-7. Enter cash counts.
+1. Use **Upload and Classify a Statement** for PDF, Excel, or CSV.
+2. Compare every gold warning row with the original statement.
+3. Choose the classification beside each reviewed line; use bulk classification only for genuinely similar rows.
+4. Use split rows for bulk payments that belong to several classifications.
+5. Use Finances only for fallback Money In and Money Out entry.
+6. Match bank lines to published transactions when a record was entered manually.
+7. Prepare internal transfers by selecting the other association account.
+8. Prepare reconciliations only after resolving every warning and duplicate.
+9. Enter cash counts.
+
+Long statements can be saved with **Save and Continue Later**. The saved review remains visible under Saved Statement Reviews. Completing or discarding the review removes the temporary draft file but keeps the original statement evidence.
 
 Publishers:
 
 1. Check records entered by Finance Officers.
 2. Publish correct finance records.
 3. Send back unclear records.
-4. Publish and lock reconciliations.
-5. Review cash counts.
+4. Use Publish Selected for ordinary rows that have all been checked; transfers and corrections must always be reviewed as their linked two-record group.
+5. Publish and lock reconciliations.
+6. Review cash counts.
 
 Membership Administrators:
 
@@ -590,8 +640,9 @@ Monthly backup:
 1. Open Administration.
 2. Click Set Monthly Backup.
 3. The app creates a monthly trigger for the first day of each month.
+4. Return to Administration after the first scheduled date and verify the displayed last-backup status.
 
-Backups copy the main data spreadsheet into the Archive folder. They do not replace careful Google account ownership and Drive permission management.
+Backups copy the main data spreadsheet into the Archive folder. They also copy each new receipt and bank-statement evidence file once into `Archive > Evidence Files`; evidence already present there is not copied again. Keep the official Google account protected with recovery options and two-step verification, and periodically test that both a spreadsheet backup and several evidence copies can be opened.
 
 ## Deployment Guide
 
@@ -682,10 +733,12 @@ Do not share the raw spreadsheet or Drive folders with ordinary members.
 - Finance Officer can preview CSV bank statements.
 - Finance Officer can map CSV columns.
 - Finance Officer can import CSV bank lines.
-- Duplicate CSV imports or bank lines show a warning.
-- Finance Officer can upload PDF bank statements as evidence.
+- Duplicate statement rows are quarantined and excluded from matching and reconciliation.
+- Finance Officer can preview and import PDF, Excel, and CSV bank statements.
+- Statement running balances determine extraction confidence.
+- Finance Officer can classify rows in the mobile statement workbench.
 - Finance Officer can manually enter bank statement lines.
-- Recent imports and recent bank lines are visible in Bank Matching.
+- Recent imports and recent bank lines are visible in Bank Statements.
 - Bank statement actions appear in the audit log.
 
 ## Stage 5 Completion Checklist
@@ -695,8 +748,8 @@ Do not share the raw spreadsheet or Drive folders with ordinary members.
 - System suggests likely matches.
 - Finance Officer can manually match a bank line to a published transaction.
 - Finance Officer can mark bank lines as Needs Review.
-- Finance Officer can mark bank lines as Internal Transfer.
-- Finance Officer can create a ledger transaction from a bank line.
+- Finance Officer can prepare linked internal-transfer records for two association accounts.
+- Finance Officer can categorise one bank line into one or more ledger transactions.
 - Finance Officer can prepare a reconciliation.
 - Publisher can publish and lock a reconciliation.
 - Matching and reconciliation actions appear in the audit log.
@@ -709,8 +762,8 @@ Do not share the raw spreadsheet or Drive folders with ordinary members.
 - Recent cash counts appear in Finances.
 - Members can view report summaries.
 - Members can generate simple financial reports.
-- Members can generate Income and Expenditure Statement for any selected period.
-- Members can generate Statement of Financial Position as at a selected date.
+- Members can generate a Receipts and Payments Statement for any selected period.
+- Members can generate a Statement of Funds Available as at a selected date.
 - Report data uses published transactions only.
 - Cash-count actions appear in the audit log.
 
@@ -723,6 +776,20 @@ Do not share the raw spreadsheet or Drive folders with ordinary members.
 - Administrator guide is documented.
 - Backup guide is documented.
 - Deployment guide is documented.
+
+## Stage 8 Completion Checklist
+
+- Existing installations can append the Stage 8 columns without deleting existing data.
+- PDF rows are checked using running-balance arithmetic.
+- Excel, CSV, PDF, and manual statement workflows are available.
+- Duplicate lines are quarantined.
+- Classification is available beside each reviewed statement row.
+- Internal transfers create linked records and are excluded from receipts and payments.
+- Published corrections use a visible reversal and replacement reviewed as one batch.
+- Reconciliations cannot lock with a difference or unmatched records.
+- Account balances can be rebuilt from opening balances and published records.
+- Scheduled backups run without requiring an interactive user session.
+- Bank lines support account, status, date, and text search with pagination.
 - Final testing checklist is documented.
 
 ## Final Testing Checklist
@@ -738,10 +805,11 @@ Do not share the raw spreadsheet or Drive folders with ordinary members.
 - Manual bank line entry works.
 - Matching works.
 - Reconciliation can be locked.
+- Locking a reconciliation closes that account through the reconciliation end date; later entries must use a date after the locked period or the visible correction workflow.
 - Cash count works.
 - Reports work.
 - User management works from Administration.
 - Backups work.
 - Audit Log records important actions.
 
-The system is ready for association testing once all checklist items pass with real Google accounts.
+The system is ready for a controlled association pilot only after all checklist items pass with real Google accounts and the supplied Polaris statement is reviewed against the original PDF. Keep the previous deployment available until the pilot reconciliation agrees exactly with the bank.

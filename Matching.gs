@@ -1,7 +1,8 @@
 var MATCH_STATUS = {
   MATCHED: 'Matched',
   NEEDS_REVIEW: 'Needs Review',
-  INTERNAL_TRANSFER: 'Internal Transfer'
+  INTERNAL_TRANSFER: 'Internal Transfer',
+  READY_TO_PUBLISH: 'Ready to Publish'
 };
 
 var RECONCILIATION_STATUS = {
@@ -20,7 +21,7 @@ function getBankMatchingData() {
     unmatchedTransactions: getUnmatchedPublishedTransactions_(),
     recentMatches: getRecentMatches_(),
     reconciliations: getRecentReconciliations_(),
-    canPrepare: hasAnyRole(user.roles, [ROLES.FINANCE_OFFICER]),
+    canPrepare: hasFinanceOfficerOrSystemAdmin(user.roles),
     canPublish: hasAnyRole(user.roles, [ROLES.PUBLISHER, ROLES.REVIEWER])
   };
 }
@@ -46,37 +47,40 @@ function getMatchSuggestions(bankLineId) {
 }
 
 function matchBankLineToTransaction(bankLineId, transactionId, notes) {
-  var user = requireAnyRole([ROLES.FINANCE_OFFICER]);
-  var bankLine = findRecordByValue(getSheetByName('Bank Statement Lines'), 'Bank Line ID', bankLineId, false);
-  var transaction = findRecordByValue(getSheetByName('Transactions'), 'Transaction ID', transactionId, false);
-
-  if (!bankLine) {
-    throw new Error('Bank line not found.');
-  }
-  if (!transaction || transaction.Status !== TRANSACTION_STATUS.APPROVED) {
-    throw new Error('Choose a published transaction.');
-  }
-  if (isBankLineMatched_(bankLineId)) {
-    throw new Error('This bank line has already been matched.');
-  }
-  if (isTransactionMatched_(transactionId)) {
-    throw new Error('This transaction has already been matched.');
-  }
-
-  var bankAmount = getBankLineSignedAmount_(bankLine);
-  var txnAmount = transaction['Transaction Type'] === TRANSACTION_TYPES.MONEY_IN
-    ? parseMoney_(transaction.Amount)
-    : -parseMoney_(transaction.Amount);
-  if (Math.abs(bankAmount - txnAmount) > 0.01) {
-    throw new Error('The bank line amount and transaction amount are different.');
-  }
-
+  var user = requireFinanceOfficerOrSystemAdmin();
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
 
   try {
-    var matchId = getNextId('Transaction Matches', 'MAT');
-    getSheetByName('Transaction Matches').appendRow([
+    var bankLine = findRecordByValue(getSheetByName('Bank Statement Lines'), 'Bank Line ID', bankLineId, false);
+    var transaction = findRecordByValue(getSheetByName('Transactions'), 'Transaction ID', transactionId, false);
+    if (!bankLine) {
+      throw new Error('Bank line not found.');
+    }
+    if (!transaction || transaction.Status !== TRANSACTION_STATUS.APPROVED) {
+      throw new Error('Choose a published transaction.');
+    }
+    if (bankLine.Status === MATCH_STATUS.READY_TO_PUBLISH || hasWaitingTransactionsForBankLine_(bankLineId)) {
+      throw new Error('This bank line still has category records waiting for Publisher approval.');
+    }
+    if (isBankLineMatched_(bankLineId)) {
+      throw new Error('This bank line has already been matched.');
+    }
+    if (isTransactionMatched_(transactionId)) {
+      throw new Error('This transaction has already been matched.');
+    }
+    if (String(bankLine['Account ID']) !== String(transaction['Account ID'])) {
+      throw new Error('The bank line and transaction must belong to the same account.');
+    }
+    var bankAmount = getBankLineSignedAmount_(bankLine);
+    var txnAmount = isMoneyInType_(transaction['Transaction Type'])
+      ? parseMoney_(transaction.Amount)
+      : -parseMoney_(transaction.Amount);
+    if (Math.abs(bankAmount - txnAmount) > 0.01) {
+      throw new Error('The bank line amount and transaction amount are different.');
+    }
+    var matchId = getNextId_('Transaction Matches', 'MAT');
+    appendSafeRow_(getSheetByName('Transaction Matches'), [
       matchId,
       bankLineId,
       transactionId,
@@ -93,7 +97,7 @@ function matchBankLineToTransaction(bankLineId, transactionId, notes) {
       Status: TRANSACTION_STATUS.RECONCILED,
       'Updated At': nowIso()
     });
-    writeAuditLog('Bank line matched', 'Transaction Match', matchId, '', { bankLineId: bankLineId, transactionId: transactionId }, 'Finance Officer matched bank line to transaction');
+    safeWriteAuditLog_('Bank line matched', 'Transaction Match', matchId, '', { bankLineId: bankLineId, transactionId: transactionId }, 'Finance Officer matched bank line to transaction');
     return { ok: true, matchId: matchId };
   } finally {
     lock.releaseLock();
@@ -109,61 +113,121 @@ function markBankLineInternalTransfer(bankLineId, notes) {
 }
 
 function createTransactionFromBankLine(bankLineId, details) {
-  var user = requireAnyRole([ROLES.FINANCE_OFFICER]);
-  var bankLine = findRecordByValue(getSheetByName('Bank Statement Lines'), 'Bank Line ID', bankLineId, false);
-  if (!bankLine) {
-    throw new Error('Bank line not found.');
-  }
-  if (isBankLineMatched_(bankLineId)) {
-    throw new Error('This bank line is already matched.');
-  }
-
+  var user = requireFinanceOfficerOrSystemAdmin();
   details = details || {};
-  var transactionType = parseMoney_(bankLine['Money In']) > 0 ? TRANSACTION_TYPES.MONEY_IN : TRANSACTION_TYPES.MONEY_OUT;
-  var categoryId = String(details['Category ID'] || '').trim();
-  if (!categoryId) {
-    throw new Error('Category is required.');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var bankLineSheet = getSheetByName('Bank Statement Lines');
+    var bankLine = findRecordByValue(bankLineSheet, 'Bank Line ID', bankLineId, false);
+    if (!bankLine) {
+      throw new Error('Bank line not found.');
+    }
+    if (isBankLineMatched_(bankLineId)
+      || bankLine.Status === MATCH_STATUS.READY_TO_PUBLISH
+      || hasWaitingTransactionsForBankLine_(bankLineId)) {
+      throw new Error('This bank line has already been handled or is waiting for Publisher approval.');
+    }
+    var account = findRecordByValue(getSheetByName('Accounts'), 'Account ID', bankLine['Account ID'], false);
+    if (!account || account.Status !== 'Active') {
+      throw new Error('The bank line account is no longer active.');
+    }
+    assertAccountingPeriodOpen_(bankLine['Account ID'], bankLine['Statement Date']);
+    var transactionType = parseMoney_(bankLine['Money In']) > 0 ? TRANSACTION_TYPES.MONEY_IN : TRANSACTION_TYPES.MONEY_OUT;
+    var bankAmount = transactionType === TRANSACTION_TYPES.MONEY_IN ? parseMoney_(bankLine['Money In']) : parseMoney_(bankLine['Money Out']);
+    var splits = cleanBankLineCategorySplits_(details, transactionType, bankAmount);
+    var transactionSheet = getSheetByName('Transactions');
+    var nextSequence = Number(getNextId_('Transactions', 'TXN').split('-')[1]);
+    var now = nowIso();
+    var transactionIds = [];
+    var rows = splits.map(function(split, index) {
+      var transactionId = makeId('TXN', nextSequence++);
+      transactionIds.push(transactionId);
+      var payerOrPayee = split.payerOrPayee || String(details['Payer or Payee'] || bankLine.Description || '').trim();
+      if (transactionType === TRANSACTION_TYPES.MONEY_OUT && !payerOrPayee) {
+        throw new Error('Each Money Out category needs a payee.');
+      }
+      return makeRowForHeaders_(transactionSheet, {
+        'Transaction ID': transactionId,
+        'Transaction Type': transactionType,
+        Date: normalizeImportedDate_(bankLine['Statement Date']),
+        Amount: split.amount,
+        'Account ID': bankLine['Account ID'],
+        'Payer or Payee': payerOrPayee,
+        'Category ID': split.categoryId,
+        Description: split.description || String(details.Description || bankLine.Description || '').trim(),
+        'Reference Number': bankLine['Reference Number'],
+        'Payment Method': 'Bank Statement',
+        'Fund ID': split.fundId || String(details['Fund ID'] || '').trim(),
+        'Document ID': bankLine['Document ID'],
+        'Entered By': user.email,
+        Status: TRANSACTION_STATUS.SUBMITTED,
+        'Submitted At': now,
+        Reason: 'Created from bank statement line ' + bankLineId + (splits.length > 1 ? ' split ' + (index + 1) + ' of ' + splits.length : ''),
+        'Created At': now,
+        'Updated At': now,
+        'Source Bank Line ID': bankLineId
+      });
+    });
+    transactionSheet.getRange(transactionSheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+    updateRecordByHeaders(bankLineSheet, bankLine._rowNumber, {
+      Status: MATCH_STATUS.READY_TO_PUBLISH,
+      Notes: 'Category records waiting for Publisher approval: ' + transactionIds.join(', '),
+      'Updated At': now
+    });
+    safeWriteAuditLog_('Category records created from bank line', 'Bank Statement Line', bankLineId, '', {
+      bankLineId: bankLineId,
+      transactionType: transactionType,
+      transactionIds: transactionIds,
+      splitCount: splits.length
+    }, 'Finance Officer categorised bank statement line');
+    return { ok: true, transactionIds: transactionIds, transactionId: transactionIds[0], status: TRANSACTION_STATUS.SUBMITTED };
+  } finally {
+    lock.releaseLock();
   }
-
-  var transaction = {
-    Date: formatDateOnly_(bankLine['Statement Date']),
-    Amount: transactionType === TRANSACTION_TYPES.MONEY_IN ? bankLine['Money In'] : bankLine['Money Out'],
-    'Account ID': bankLine['Account ID'],
-    'Payer or Payee': String(details['Payer or Payee'] || bankLine.Description || '').trim(),
-    'Category ID': categoryId,
-    Description: String(details.Description || bankLine.Description || '').trim(),
-    'Reference Number': bankLine['Reference Number'],
-    'Payment Method': 'Bank',
-    'Fund ID': String(details['Fund ID'] || '').trim(),
-    'Document ID': bankLine['Document ID'],
-    Reason: 'Created from bank statement line ' + bankLineId
-  };
-
-  var result = transactionType === TRANSACTION_TYPES.MONEY_IN
-    ? recordMoneyIn(transaction)
-    : recordMoneyOut(transaction);
-
-  writeAuditLog('Transaction created from bank line', 'Transaction', result.transactionId, '', {
-    bankLineId: bankLineId,
-    transactionType: transactionType
-  }, 'Finance Officer created ledger entry from bank line');
-
-  return result;
 }
 
 function prepareReconciliation(record) {
-  var user = requireAnyRole([ROLES.FINANCE_OFFICER]);
+  var user = requireFinanceOfficerOrSystemAdmin();
   var clean = cleanReconciliationRecord_(record || {});
-  validateRequired_(clean, ['Account ID', 'Period Start', 'Period End', 'Opening Balance', 'Statement Closing Balance']);
+  validateRequired_(clean, ['Account ID', 'Period Start', 'Period End', 'Statement Closing Balance']);
+  var account = findRecordByValue(getSheetByName('Accounts'), 'Account ID', clean['Account ID'], false);
+  if (!account || account.Status !== 'Active') {
+    throw new Error('Choose an active account.');
+  }
+  if (parseAppDate_(clean['Period Start']) > parseAppDate_(clean['Period End'])) {
+    throw new Error('Period start cannot be after period end.');
+  }
+  var existingLockDate = getAccountingLockDate_(clean['Account ID']);
+  if (existingLockDate && normalizeImportedDate_(clean['Period Start']) <= existingLockDate) {
+    throw new Error('This account is already locked through ' + formatDisplayDate_(existingLockDate) + '. Start the next reconciliation after that date.');
+  }
+  if (!hasStatementEvidenceForReconciliation_(clean)) {
+    throw new Error('A successfully imported bank statement must cover this account and the full reconciliation period.');
+  }
 
-  var summary = calculateReconciliationSummary_(clean['Account ID'], clean['Period Start'], clean['Period End'], clean['Opening Balance'], clean['Statement Closing Balance']);
+  var summary = calculateReconciliationSummary_(clean['Account ID'], clean['Period Start'], clean['Period End'], '', clean['Statement Closing Balance']);
+  if (countPendingLedgerTransactions_(clean['Account ID'], clean['Period Start'], clean['Period End']) > 0) {
+    throw new Error('Publish or send back every pending transaction in this period before preparing the reconciliation.');
+  }
 
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
 
   try {
-    var reconciliationId = getNextId('Reconciliations', 'REC');
-    getSheetByName('Reconciliations').appendRow([
+    existingLockDate = getAccountingLockDate_(clean['Account ID']);
+    if (existingLockDate && normalizeImportedDate_(clean['Period Start']) <= existingLockDate) {
+      throw new Error('This account is already locked through ' + formatDisplayDate_(existingLockDate) + '. Start the next reconciliation after that date.');
+    }
+    if (!hasStatementEvidenceForReconciliation_(clean)) {
+      throw new Error('The statement evidence changed or is no longer available. Refresh and try again.');
+    }
+    if (countPendingLedgerTransactions_(clean['Account ID'], clean['Period Start'], clean['Period End']) > 0) {
+      throw new Error('Publish or send back every pending transaction in this period before preparing the reconciliation.');
+    }
+    summary = calculateReconciliationSummary_(clean['Account ID'], clean['Period Start'], clean['Period End'], '', clean['Statement Closing Balance']);
+    var reconciliationId = getNextId_('Reconciliations', 'REC');
+    appendSafeRow_(getSheetByName('Reconciliations'), [
       reconciliationId,
       clean['Account ID'],
       clean['Period Start'],
@@ -186,7 +250,7 @@ function prepareReconciliation(record) {
       nowIso()
     ]);
 
-    writeAuditLog('Reconciliation prepared', 'Reconciliation', reconciliationId, '', summary, 'Finance Officer prepared reconciliation');
+    safeWriteAuditLog_('Reconciliation prepared', 'Reconciliation', reconciliationId, '', summary, 'Finance Officer prepared reconciliation');
     return { ok: true, reconciliationId: reconciliationId, summary: summary };
   } finally {
     lock.releaseLock();
@@ -207,14 +271,65 @@ function publishReconciliation(reconciliationId, notes) {
     throw new Error('You cannot publish a reconciliation you prepared.');
   }
 
-  updateRecordByHeaders(sheet, reconciliation._rowNumber, {
-    Status: RECONCILIATION_STATUS.LOCKED,
-    'Approved By': user.email,
-    'Date Completed': nowIso(),
-    'Updated At': nowIso()
-  });
+  var currentSummary = calculateReconciliationSummary_(
+    reconciliation['Account ID'],
+    reconciliation['Period Start'],
+    reconciliation['Period End'],
+    reconciliation['Opening Balance'],
+    reconciliation['Statement Closing Balance']
+  );
+  if (Math.abs(currentSummary.difference - parseMoney_(reconciliation.Difference)) > 0.01
+    || currentSummary.unmatchedBankLines !== Number(reconciliation['Unmatched Bank Lines'] || 0)
+    || currentSummary.unmatchedLedgerTransactions !== Number(reconciliation['Unmatched Ledger Transactions'] || 0)) {
+    throw new Error('Bank or ledger records changed after this reconciliation was prepared. Prepare it again before publishing.');
+  }
+  if (Math.abs(currentSummary.difference) > 0.01) {
+    throw new Error('This reconciliation cannot be locked because the difference is not zero.');
+  }
+  if (currentSummary.unmatchedBankLines > 0 || currentSummary.unmatchedLedgerTransactions > 0) {
+    throw new Error('Resolve every unmatched bank line and ledger transaction before locking this reconciliation.');
+  }
+  if (countPendingLedgerTransactions_(reconciliation['Account ID'], reconciliation['Period Start'], reconciliation['Period End']) > 0) {
+    throw new Error('Pending transactions now exist in this period. Publish or send them back, then prepare the reconciliation again.');
+  }
+  if (!hasStatementEvidenceForReconciliation_(reconciliation)) {
+    throw new Error('A reviewed bank statement import must cover this account and period before reconciliation can be locked.');
+  }
 
-  writeAuditLog('Reconciliation published and locked', 'Reconciliation', reconciliationId, reconciliation, {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var current = findRecordByValue(sheet, 'Reconciliation ID', reconciliationId, false);
+    if (!current || current.Status !== RECONCILIATION_STATUS.READY_TO_PUBLISH) {
+      throw new Error('This reconciliation has already been handled.');
+    }
+    var currentLockDate = getAccountingLockDate_(current['Account ID']);
+    if (currentLockDate && normalizeImportedDate_(current['Period End']) <= currentLockDate) {
+      throw new Error('A later or equal period has already been locked for this account.');
+    }
+    var lockedSummary = calculateReconciliationSummary_(
+      current['Account ID'], current['Period Start'], current['Period End'], current['Opening Balance'], current['Statement Closing Balance']
+    );
+    if (Math.abs(lockedSummary.difference) > 0.01 || lockedSummary.unmatchedBankLines > 0 || lockedSummary.unmatchedLedgerTransactions > 0) {
+      throw new Error('Records changed while publishing. Prepare the reconciliation again.');
+    }
+    if (countPendingLedgerTransactions_(current['Account ID'], current['Period Start'], current['Period End']) > 0) {
+      throw new Error('Pending transactions now exist in this period. Prepare the reconciliation again after they are handled.');
+    }
+    updateRecordByHeaders(sheet, current._rowNumber, {
+      Status: RECONCILIATION_STATUS.LOCKED,
+      'Approved By': user.email,
+      'Date Completed': nowIso(),
+      'Updated At': nowIso(),
+      'Review Notes': String(notes || '').trim(),
+      'Exception Approved': 'No'
+    });
+    setPersistentSetting_('ACCOUNTING_LOCK_DATE_' + current['Account ID'], normalizeImportedDate_(current['Period End']), 'Account locked by published reconciliation ' + reconciliationId, user.email);
+  } finally {
+    lock.releaseLock();
+  }
+
+  safeWriteAuditLog_('Reconciliation published and locked', 'Reconciliation', reconciliationId, reconciliation, {
     status: RECONCILIATION_STATUS.LOCKED,
     notes: notes || ''
   }, 'Publisher published reconciliation');
@@ -223,34 +338,47 @@ function publishReconciliation(reconciliationId, notes) {
 }
 
 function markBankLineStatus_(bankLineId, status, notes) {
-  var user = requireAnyRole([ROLES.FINANCE_OFFICER]);
-  var sheet = getSheetByName('Bank Statement Lines');
-  var bankLine = findRecordByValue(sheet, 'Bank Line ID', bankLineId, false);
-  if (!bankLine) {
-    throw new Error('Bank line not found.');
+  var user = requireFinanceOfficerOrSystemAdmin();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var sheet = getSheetByName('Bank Statement Lines');
+    var bankLine = findRecordByValue(sheet, 'Bank Line ID', bankLineId, false);
+    if (!bankLine) {
+      throw new Error('Bank line not found.');
+    }
+    if (isBankLineMatched_(bankLineId)
+      || bankLine.Status === MATCH_STATUS.READY_TO_PUBLISH
+      || hasWaitingTransactionsForBankLine_(bankLineId)) {
+      throw new Error('This bank line has already been handled or is waiting for Publisher approval.');
+    }
+    updateRecordByHeaders(sheet, bankLine._rowNumber, {
+      Status: status,
+      Notes: String(notes || '').trim(),
+      'Updated At': nowIso()
+    });
+    safeWriteAuditLog_('Bank line marked ' + status.toLowerCase(), 'Bank Statement Line', bankLineId, bankLine, { status: status, notes: notes || '' }, 'Finance Officer updated bank line status');
+    return { ok: true, bankLineId: bankLineId, status: status };
+  } finally {
+    lock.releaseLock();
   }
-
-  updateRecordByHeaders(sheet, bankLine._rowNumber, {
-    Status: status,
-    Notes: String(notes || '').trim(),
-    'Updated At': nowIso()
-  });
-  writeAuditLog('Bank line marked ' + status.toLowerCase(), 'Bank Statement Line', bankLineId, bankLine, { status: status, notes: notes || '' }, 'Finance Officer updated bank line status');
-  return { ok: true, bankLineId: bankLineId, status: status };
 }
 
 function getUnmatchedBankLines_() {
   var matched = getMatchedBankLineLookup_();
   return getSheetRecords(getSheetByName('Bank Statement Lines')).filter(function(line) {
-    return !matched[line['Bank Line ID']] && [MATCH_STATUS.MATCHED, MATCH_STATUS.INTERNAL_TRANSFER].indexOf(line.Status) === -1;
-  }).map(sanitizeBankLineForMatch_).slice(0, 100);
+    return !matched[line['Bank Line ID']]
+      && [MATCH_STATUS.MATCHED, MATCH_STATUS.INTERNAL_TRANSFER, MATCH_STATUS.READY_TO_PUBLISH, 'Duplicate Quarantined', 'Excluded'].indexOf(line.Status) === -1
+      && !isYes_(line['Is Duplicate'])
+      && (parseMoney_(line['Money In']) > 0 || parseMoney_(line['Money Out']) > 0);
+  }).slice(-100).reverse().map(sanitizeBankLineForMatch_);
 }
 
 function getUnmatchedPublishedTransactions_() {
   var matched = getMatchedTransactionLookup_();
   return getSheetRecords(getSheetByName('Transactions')).filter(function(transaction) {
     return !matched[transaction['Transaction ID']] && transaction.Status === TRANSACTION_STATUS.APPROVED;
-  }).map(sanitizeTransactionForDisplay_).slice(0, 100);
+  }).slice(-100).reverse().map(sanitizeTransactionForDisplay_);
 }
 
 function getRecentMatches_() {
@@ -301,9 +429,9 @@ function sanitizeBankLineForMatch_(line) {
 
 function getMatchedBankLineLookup_() {
   var lookup = {};
-  getSheetRecords(getSheetByName('Transaction Matches')).forEach(function(match) {
-    if (match['Match Status'] === MATCH_STATUS.MATCHED) {
-      lookup[match['Bank Line ID']] = true;
+  getSheetRecords(getSheetByName('Bank Statement Lines')).forEach(function(line) {
+    if (line.Status === MATCH_STATUS.MATCHED) {
+      lookup[line['Bank Line ID']] = true;
     }
   });
   return lookup;
@@ -334,7 +462,7 @@ function getBankLineSignedAmount_(bankLine) {
 function getMatchScore_(bankLine, transaction) {
   var score = 0;
   var bankAmount = getBankLineSignedAmount_(bankLine);
-  var txnAmount = transaction.transactionType === TRANSACTION_TYPES.MONEY_IN
+  var txnAmount = isMoneyInType_(transaction.transactionType)
     ? transaction.amount
     : -transaction.amount;
   if (Math.abs(bankAmount - txnAmount) < 0.01) {
@@ -353,38 +481,55 @@ function getMatchScore_(bankLine, transaction) {
 }
 
 function calculateReconciliationSummary_(accountId, periodStart, periodEnd, openingBalance, statementClosingBalance) {
-  var start = new Date(periodStart);
-  var end = new Date(periodEnd);
+  var start = parseAppDate_(periodStart);
+  var end = parseAppDate_(periodEnd);
+  end.setHours(23, 59, 59, 999);
   var lines = getSheetRecords(getSheetByName('Bank Statement Lines')).filter(function(line) {
-    var date = new Date(line['Statement Date']);
-    return line['Account ID'] === accountId && date >= start && date <= end;
+    var date = parseAppDate_(line['Statement Date']);
+    return line['Account ID'] === accountId && date >= start && date <= end
+      && line.Status !== 'Duplicate Quarantined' && line.Status !== 'Excluded' && !isYes_(line['Is Duplicate']);
   });
   var transactions = getSheetRecords(getSheetByName('Transactions')).filter(function(transaction) {
-    var date = new Date(transaction.Date);
-    return transaction['Account ID'] === accountId && date >= start && date <= end && transaction.Status === TRANSACTION_STATUS.APPROVED;
+    var date = parseAppDate_(transaction.Date);
+    return transaction['Account ID'] === accountId && date >= start && date <= end
+      && (transaction.Status === TRANSACTION_STATUS.APPROVED || transaction.Status === TRANSACTION_STATUS.RECONCILED);
   });
 
   var matchedBank = getMatchedBankLineLookup_();
   var matchedTxn = getMatchedTransactionLookup_();
+  var statementMoneyIn = 0;
+  var statementMoneyOut = 0;
   var moneyIn = 0;
   var moneyOut = 0;
   var matchedItems = 0;
 
   lines.forEach(function(line) {
-    moneyIn += parseMoney_(line['Money In']);
-    moneyOut += parseMoney_(line['Money Out']);
+    statementMoneyIn += parseMoney_(line['Money In']);
+    statementMoneyOut += parseMoney_(line['Money Out']);
     if (matchedBank[line['Bank Line ID']]) {
       matchedItems++;
     }
   });
 
-  var expected = parseMoney_(openingBalance) + moneyIn - moneyOut;
+  transactions.forEach(function(transaction) {
+    var amount = parseMoney_(transaction.Amount);
+    if (isMoneyInType_(transaction['Transaction Type'])) {
+      moneyIn += amount;
+    } else if (isMoneyOutType_(transaction['Transaction Type'])) {
+      moneyOut += amount;
+    }
+  });
+
+  var derivedOpeningBalance = calculateLedgerOpeningBalance_(accountId, start);
+  var expected = derivedOpeningBalance + moneyIn - moneyOut;
   var statement = parseMoney_(statementClosingBalance);
 
   return {
-    openingBalance: parseMoney_(openingBalance),
+    openingBalance: derivedOpeningBalance,
     moneyIn: moneyIn,
     moneyOut: moneyOut,
+    statementMoneyIn: Math.round(statementMoneyIn * 100) / 100,
+    statementMoneyOut: Math.round(statementMoneyOut * 100) / 100,
     expectedClosingBalance: expected,
     statementClosingBalance: statement,
     difference: Math.round((statement - expected) * 100) / 100,
@@ -392,6 +537,307 @@ function calculateReconciliationSummary_(accountId, periodStart, periodEnd, open
     unmatchedBankLines: lines.filter(function(line) { return !matchedBank[line['Bank Line ID']]; }).length,
     unmatchedLedgerTransactions: transactions.filter(function(transaction) { return !matchedTxn[transaction['Transaction ID']]; }).length
   };
+}
+
+function calculateLedgerOpeningBalance_(accountId, periodStart) {
+  var account = findRecordByValue(getSheetByName('Accounts'), 'Account ID', accountId, false);
+  if (!account) {
+    throw new Error('Reconciliation account was not found.');
+  }
+  var start = Object.prototype.toString.call(periodStart) === '[object Date]' ? periodStart : parseAppDate_(periodStart);
+  var balance = parseMoney_(account['Opening Balance']);
+  getSheetRecords(getSheetByName('Transactions')).forEach(function(transaction) {
+    if (transaction['Account ID'] !== accountId || !isPublishedTransactionStatus_(transaction.Status)) {
+      return;
+    }
+    if (parseAppDate_(transaction.Date) >= start) {
+      return;
+    }
+    var amount = parseMoney_(transaction.Amount);
+    balance += isMoneyInType_(transaction['Transaction Type']) ? amount : -amount;
+  });
+  return Math.round(balance * 100) / 100;
+}
+
+function countPendingLedgerTransactions_(accountId, periodStart, periodEnd) {
+  var start = parseAppDate_(periodStart);
+  var end = parseAppDate_(periodEnd);
+  end.setHours(23, 59, 59, 999);
+  return getSheetRecords(getSheetByName('Transactions')).filter(function(transaction) {
+    if (transaction['Account ID'] !== accountId || transaction.Status !== TRANSACTION_STATUS.SUBMITTED) {
+      return false;
+    }
+    var date = parseAppDate_(transaction.Date);
+    return date >= start && date <= end;
+  }).length;
+}
+
+function cleanBankLineCategorySplits_(details, transactionType, bankAmount) {
+  var rawSplits = details.Splits || details.splits || '';
+  var splits = [];
+  if (rawSplits) {
+    if (typeof rawSplits === 'string') {
+      try {
+        rawSplits = JSON.parse(rawSplits);
+      } catch (error) {
+        throw new Error('Split category details could not be read.');
+      }
+    }
+    if (!Array.isArray(rawSplits)) {
+      throw new Error('Split category details should be a list.');
+    }
+    splits = rawSplits.map(function(split) {
+      split = split || {};
+      return {
+        amount: parseMoney_(split.Amount),
+        categoryId: String(split['Category ID'] || '').trim(),
+        fundId: String(split['Fund ID'] || '').trim(),
+        payerOrPayee: String(split['Payer or Payee'] || '').trim(),
+        description: String(split.Description || '').trim()
+      };
+    }).filter(function(split) {
+      return split.amount > 0 || split.categoryId || split.description;
+    });
+  }
+
+  if (!splits.length) {
+    splits = [{
+      amount: bankAmount,
+      categoryId: String(details['Category ID'] || '').trim(),
+      fundId: String(details['Fund ID'] || '').trim(),
+      payerOrPayee: String(details['Payer or Payee'] || '').trim(),
+      description: String(details.Description || '').trim()
+    }];
+  }
+
+  var total = 0;
+  splits.forEach(function(split) {
+    if (!split.categoryId) {
+      throw new Error('Each split needs a category.');
+    }
+    if (split.amount <= 0) {
+      throw new Error('Each split amount must be greater than zero.');
+    }
+    var category = findRecordByValue(getSheetByName('Categories'), 'Category ID', split.categoryId, false);
+    if (!category || category.Status !== 'Active' || category['Category Type'] !== transactionType) {
+      throw new Error('Each split must use a valid ' + transactionType + ' category.');
+    }
+    validateOptionalFund_(split.fundId);
+    total += split.amount;
+  });
+
+  total = Math.round(total * 100) / 100;
+  if (Math.abs(total - bankAmount) > 0.01) {
+    throw new Error('Split amounts must add up to the bank amount of ' + bankAmount + '.');
+  }
+  return splits;
+}
+
+function getSourceBankLineIdFromTransaction_(transaction) {
+  var explicitId = String(transaction['Source Bank Line ID'] || transaction.sourceBankLineId || '').trim();
+  if (explicitId) {
+    return explicitId;
+  }
+  var reason = String(transaction.Reason || '');
+  var match = reason.match(/bank statement line (BANK-\d+)/i);
+  return match ? match[1] : '';
+}
+
+function hasStatementEvidenceForReconciliation_(reconciliation) {
+  var start = String(reconciliation['Period Start'] || '');
+  var end = String(reconciliation['Period End'] || '');
+  var requestedDocumentId = String(reconciliation['Document ID'] || '').trim();
+  var requestedFileId = '';
+  if (requestedDocumentId) {
+    var document = findRecordByValue(getSheetByName('Documents'), 'Document ID', requestedDocumentId, false);
+    if (!document || String(document['Document Type'] || '').toLowerCase().indexOf('bank statement') === -1) {
+      return false;
+    }
+    requestedFileId = String(document['File ID'] || '').trim();
+  }
+  return getSheetRecords(getSheetByName('Bank Statement Imports')).some(function(statementImport) {
+    var allowedStatus = [BANK_IMPORT_STATUS.IMPORTED, BANK_IMPORT_STATUS.DUPLICATE_WARNING, 'Recovered'].indexOf(statementImport['Import Status']) !== -1;
+    if (statementImport['Account ID'] !== reconciliation['Account ID'] || !allowedStatus) {
+      return false;
+    }
+    var fileId = String(statementImport['File ID'] || '').trim();
+    if (!fileId || (requestedFileId && fileId !== requestedFileId)) {
+      return false;
+    }
+    var importStart = String(statementImport['Statement Start'] || '');
+    var importEnd = String(statementImport['Statement End'] || '');
+    if (!importStart || !importEnd || importStart > start || importEnd < end) {
+      return false;
+    }
+    try {
+      DriveApp.getFileById(fileId).getName();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  });
+}
+
+function createInternalTransferFromBankLine(bankLineId, destinationAccountId, notes) {
+  var user = requireFinanceOfficerOrSystemAdmin();
+  requireCurrentSchema_();
+  var lineSheet = getSheetByName('Bank Statement Lines');
+  var bankLine = findRecordByValue(lineSheet, 'Bank Line ID', bankLineId, false);
+  if (!bankLine) {
+    throw new Error('Bank line not found.');
+  }
+  if (isBankLineMatched_(bankLineId) || bankLine.Status === MATCH_STATUS.READY_TO_PUBLISH) {
+    throw new Error('This bank line has already been handled.');
+  }
+  destinationAccountId = String(destinationAccountId || '').trim();
+  var destination = findRecordByValue(getSheetByName('Accounts'), 'Account ID', destinationAccountId, false);
+  if (!destination || destination.Status !== 'Active') {
+    throw new Error('Choose the other active association account.');
+  }
+  if (destinationAccountId === bankLine['Account ID']) {
+    throw new Error('The transfer destination must be a different account.');
+  }
+  var moneyIn = parseMoney_(bankLine['Money In']);
+  var moneyOut = parseMoney_(bankLine['Money Out']);
+  if ((moneyIn > 0 && moneyOut > 0) || (moneyIn <= 0 && moneyOut <= 0)) {
+    throw new Error('The bank line must contain one valid transfer amount.');
+  }
+  var amount = moneyIn > 0 ? moneyIn : moneyOut;
+  assertAccountingPeriodOpen_(bankLine['Account ID'], bankLine['Statement Date']);
+  assertAccountingPeriodOpen_(destinationAccountId, bankLine['Statement Date']);
+  var sourceType = moneyIn > 0 ? TRANSACTION_TYPES.TRANSFER_IN : TRANSACTION_TYPES.TRANSFER_OUT;
+  var otherType = moneyIn > 0 ? TRANSACTION_TYPES.TRANSFER_OUT : TRANSACTION_TYPES.TRANSFER_IN;
+  var otherAccountId = destinationAccountId;
+  var groupId = 'TRF-' + Utilities.getUuid().split('-')[0].toUpperCase();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    bankLine = findRecordByValue(lineSheet, 'Bank Line ID', bankLineId, false);
+    if (!bankLine || isBankLineMatched_(bankLineId)
+      || bankLine.Status === MATCH_STATUS.READY_TO_PUBLISH
+      || hasWaitingTransactionsForBankLine_(bankLineId)) {
+      throw new Error('This bank line has already been handled or is waiting for Publisher approval.');
+    }
+    assertAccountingPeriodOpen_(bankLine['Account ID'], bankLine['Statement Date']);
+    assertAccountingPeriodOpen_(destinationAccountId, bankLine['Statement Date']);
+    var transactionSheet = getSheetByName('Transactions');
+    var nextSequence = Number(getNextId_('Transactions', 'TXN').split('-')[1]);
+    var now = nowIso();
+    var sourceTransactionId = makeId('TXN', nextSequence++);
+    var otherTransactionId = makeId('TXN', nextSequence++);
+    var base = {
+      Date: normalizeImportedDate_(bankLine['Statement Date']),
+      Amount: amount,
+      'Payer or Payee': destination['Account Name'],
+      Description: 'Internal transfer: ' + String(bankLine.Description || ''),
+      'Reference Number': bankLine['Reference Number'],
+      'Payment Method': 'Internal Bank Transfer',
+      'Document ID': bankLine['Document ID'],
+      'Entered By': user.email,
+      Status: TRANSACTION_STATUS.SUBMITTED,
+      'Submitted At': now,
+      Reason: 'Internal transfer created from bank statement line ' + bankLineId + '. ' + String(notes || '').trim(),
+      'Created At': now,
+      'Updated At': now,
+      'Transfer Group ID': groupId
+    };
+    var first = Object.assign({}, base, {
+      'Transaction ID': sourceTransactionId,
+      'Transaction Type': sourceType,
+      'Account ID': bankLine['Account ID'],
+      'Source Bank Line ID': bankLineId
+    });
+    var second = Object.assign({}, base, {
+      'Transaction ID': otherTransactionId,
+      'Transaction Type': otherType,
+      'Account ID': otherAccountId,
+      'Payer or Payee': findRecordByValue(getSheetByName('Accounts'), 'Account ID', bankLine['Account ID'], false)['Account Name'],
+      Reason: 'Other side of internal transfer ' + groupId + '. Match to the corresponding bank line when it is imported.'
+    });
+    var rows = [makeRowForHeaders_(transactionSheet, first), makeRowForHeaders_(transactionSheet, second)];
+    transactionSheet.getRange(transactionSheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+    updateRecordByHeaders(lineSheet, bankLine._rowNumber, {
+      Status: MATCH_STATUS.READY_TO_PUBLISH,
+      Notes: 'Internal transfer waiting for Publisher approval: ' + groupId,
+      'Transfer Account ID': destinationAccountId,
+      'Updated At': now
+    });
+    safeWriteAuditLog_('Internal transfer prepared', 'Bank Statement Line', bankLineId, '', {
+      transferGroupId: groupId,
+      transactionIds: [sourceTransactionId, otherTransactionId],
+      destinationAccountId: destinationAccountId,
+      amount: amount
+    }, 'Finance Officer prepared both sides of an internal transfer');
+    return { ok: true, transferGroupId: groupId, transactionIds: [sourceTransactionId, otherTransactionId] };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function finalizeBankLineMatchForPublishedTransaction_(transaction) {
+  var bankLineId = getSourceBankLineIdFromTransaction_(transaction);
+  if (!bankLineId || isTransactionMatched_(transaction['Transaction ID'])) {
+    return;
+  }
+
+  var bankLineSheet = getSheetByName('Bank Statement Lines');
+  var bankLine = findRecordByValue(bankLineSheet, 'Bank Line ID', bankLineId, false);
+  if (!bankLine) {
+    return;
+  }
+
+  var matchId = getNextId_('Transaction Matches', 'MAT');
+  appendSafeRow_(getSheetByName('Transaction Matches'), [
+    matchId,
+    bankLineId,
+    transaction['Transaction ID'],
+    MATCH_STATUS.MATCHED,
+    transaction['Reviewed By'],
+    nowIso(),
+    'Auto-matched after Publisher approval'
+  ]);
+
+  updateRecordByHeaders(getSheetByName('Transactions'), transaction._rowNumber, {
+    Status: TRANSACTION_STATUS.RECONCILED,
+    'Updated At': nowIso()
+  });
+
+  if (isBankLineFullyCategorised_(bankLineId, bankLine)) {
+    updateRecordByHeaders(bankLineSheet, bankLine._rowNumber, {
+      Status: MATCH_STATUS.MATCHED,
+      Notes: 'Fully categorised and published.',
+      'Updated At': nowIso()
+    });
+  }
+}
+
+function isBankLineFullyCategorised_(bankLineId, bankLine) {
+  var bankAmount = Math.abs(getBankLineSignedAmount_(bankLine));
+  var signedBankAmount = getBankLineSignedAmount_(bankLine);
+  var total = 0;
+  var hasWaitingRecord = false;
+
+  getSheetRecords(getSheetByName('Transactions')).forEach(function(transaction) {
+    if (getSourceBankLineIdFromTransaction_(transaction) !== bankLineId) {
+      return;
+    }
+    if (transaction.Status === TRANSACTION_STATUS.SUBMITTED) {
+      hasWaitingRecord = true;
+      return;
+    }
+    if (transaction.Status === TRANSACTION_STATUS.APPROVED || transaction.Status === TRANSACTION_STATUS.RECONCILED) {
+      total += parseMoney_(transaction.Amount);
+    }
+  });
+
+  return !hasWaitingRecord && Math.abs(total - bankAmount) <= 0.01 && Math.abs(signedBankAmount) > 0;
+}
+
+function hasWaitingTransactionsForBankLine_(bankLineId) {
+  return getSheetRecords(getSheetByName('Transactions')).some(function(transaction) {
+    return getSourceBankLineIdFromTransaction_(transaction) === bankLineId
+      && transaction.Status === TRANSACTION_STATUS.SUBMITTED;
+  });
 }
 
 function cleanReconciliationRecord_(record) {
@@ -406,8 +852,14 @@ function cleanReconciliationRecord_(record) {
 }
 
 function daysBetween_(a, b) {
-  var first = new Date(a);
-  var second = new Date(b);
+  var first;
+  var second;
+  try {
+    first = parseAppDate_(a);
+    second = parseAppDate_(b);
+  } catch (error) {
+    return 9999;
+  }
   if (isNaN(first.getTime()) || isNaN(second.getTime())) {
     return 9999;
   }

@@ -63,8 +63,8 @@ function requestMyProfileUpdate(changes) {
 
   try {
     var sheet = getSheetByName('Member Update Requests');
-    var requestId = getNextId('Member Update Requests', 'REQ');
-    sheet.appendRow([
+    var requestId = getNextId_('Member Update Requests', 'REQ');
+    appendSafeRow_(sheet, [
       requestId,
       member['Member ID'],
       user.email,
@@ -75,7 +75,7 @@ function requestMyProfileUpdate(changes) {
       nowIso()
     ]);
 
-    writeAuditLog('Member profile update requested', 'Member Update Request', requestId, '', cleanChanges, 'Member requested profile update');
+    safeWriteAuditLog_('Member profile update requested', 'Member Update Request', requestId, '', cleanChanges, 'Member requested profile update');
 
     return {
       ok: true,
@@ -101,7 +101,7 @@ function updateMyPrivacySettings(settings) {
     updates['Updated At'] = nowIso();
     updateRecordByHeaders(sheet, member._rowNumber, updates);
 
-    writeAuditLog('Member privacy settings changed', 'Member', member['Member ID'], previous, updates, 'Member changed directory privacy settings');
+    safeWriteAuditLog_('Member privacy settings changed', 'Member', member['Member ID'], previous, updates, 'Member changed directory privacy settings');
 
     return {
       ok: true,
@@ -139,6 +139,9 @@ function addMember(record) {
   if (!cleanRecord['Email Address']) {
     throw new Error('Email address is required.');
   }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanRecord['Email Address'])) {
+    throw new Error('Enter a valid Google account email address.');
+  }
 
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
@@ -152,7 +155,7 @@ function addMember(record) {
       throw new Error('A member with this email address already exists.');
     }
 
-    var memberId = getNextId('Members', 'MEM');
+    var memberId = getNextId_('Members', 'MEM');
     var now = nowIso();
     var memberRow = [
       memberId,
@@ -182,11 +185,11 @@ function addMember(record) {
       now,
       now
     ];
-    membersSheet.appendRow(memberRow);
+    appendSafeRow_(membersSheet, memberRow);
 
     if (!findRecordByValue(usersSheet, 'Email', normalizedEmail, true)) {
-      usersSheet.appendRow([
-        getNextId('Users', 'USR'),
+      appendSafeRow_(usersSheet, [
+        getNextId_('Users', 'USR'),
         normalizedEmail,
         cleanRecord['Full Name'],
         ROLES.MEMBER,
@@ -197,7 +200,7 @@ function addMember(record) {
       ]);
     }
 
-    writeAuditLog('Member added', 'Member', memberId, '', cleanRecord, 'Membership Administrator added member');
+    safeWriteAuditLog_('Member added', 'Member', memberId, '', cleanRecord, 'Membership Administrator added member');
 
     return {
       ok: true,
@@ -255,10 +258,23 @@ function reviewMemberUpdateRequest(requestId, decision) {
       if (!member) {
         throw new Error('Member record not found.');
       }
+      if (Object.prototype.hasOwnProperty.call(changes, 'Email Address')) {
+        var normalizedNewEmail = normalizeEmail(changes['Email Address']);
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedNewEmail)) {
+          throw new Error('The requested email address is not valid.');
+        }
+        var otherMember = findRecordByValue(membersSheet, 'Email Address', normalizedNewEmail, true);
+        var otherUser = findRecordByValue(getSheetByName('Users'), 'Email', normalizedNewEmail, true);
+        if ((otherMember && otherMember['Member ID'] !== member['Member ID'])
+          || (otherUser && otherUser['Member ID'] !== member['Member ID'])) {
+          throw new Error('The requested email address is already used by another member.');
+        }
+        changes['Email Address'] = normalizedNewEmail;
+      }
       changes['Updated At'] = nowIso();
       updateRecordByHeaders(membersSheet, member._rowNumber, changes);
       updateLinkedUserAfterMemberChange_(member, changes);
-      writeAuditLog('Member profile changed', 'Member', member['Member ID'], member, changes, 'Membership Administrator approved member update');
+      safeWriteAuditLog_('Member profile changed', 'Member', member['Member ID'], member, changes, 'Membership Administrator approved member update');
     }
 
     updateRecordByHeaders(requestsSheet, request._rowNumber, {
@@ -267,7 +283,7 @@ function reviewMemberUpdateRequest(requestId, decision) {
       'Reviewed At': nowIso()
     });
 
-    writeAuditLog('Member update request ' + normalizedDecision.toLowerCase(), 'Member Update Request', requestId, request, { status: normalizedDecision }, 'Membership Administrator reviewed request');
+    safeWriteAuditLog_('Member update request ' + normalizedDecision.toLowerCase(), 'Member Update Request', requestId, request, { status: normalizedDecision }, 'Membership Administrator reviewed request');
 
     return {
       ok: true,

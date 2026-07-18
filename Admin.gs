@@ -4,6 +4,19 @@ function getAdministrationData() {
   return {
     users: getUsersForAdmin_(),
     members: getMembersForUserManagement_(),
+    schemaVersion: getSettingValue_('DATA_SCHEMA_VERSION') || 'Legacy - upgrade required',
+    targetSchemaVersion: DATA_SCHEMA_VERSION,
+    appVersion: APP_VERSION,
+    pendingAuditEntries: getPendingAuditCount_(),
+    backupHealth: {
+      lastBackupAt: getSettingValue_('LAST_BACKUP_AT'),
+      lastBackupStatus: getSettingValue_('LAST_BACKUP_STATUS') || 'No verified backup recorded yet'
+    },
+    recoveryImports: getSheetRecords(getSheetByName('Bank Statement Imports')).filter(function(item) {
+      return item['Review Status'] === 'Recovery Required';
+    }).map(function(item) {
+      return { importId: item['Import ID'], fileName: item['File Name'], error: item['Error Details'] };
+    }),
     roles: [
       ROLES.MEMBER,
       ROLES.FINANCE_OFFICER,
@@ -14,10 +27,25 @@ function getAdministrationData() {
   };
 }
 
+function repairPendingAuditLogs() {
+  var admin = requireAnyRole([ROLES.SYSTEM_ADMIN]);
+  var result = flushPendingAuditLogs_();
+  safeWriteAuditLog_('Pending audit entries repaired', 'System', 'AUDIT_RECOVERY', '', result, 'System Administrator ran audit recovery');
+  result.ok = true;
+  result.repairedBy = admin.email;
+  return result;
+}
+
 function saveUserAccess(record) {
   var admin = requireAnyRole([ROLES.SYSTEM_ADMIN]);
   var clean = cleanUserAccessRecord_(record || {});
   validateRequired_(clean, ['Email', 'Full Name', 'Roles', 'Status']);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean.Email)) {
+    throw new Error('Enter a valid Google account email address.');
+  }
+  if (['Active', 'Inactive'].indexOf(clean.Status) === -1) {
+    throw new Error('User status must be Active or Inactive.');
+  }
 
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
@@ -28,8 +56,13 @@ function saveUserAccess(record) {
       ? findRecordByValue(sheet, 'User ID', clean['User ID'], false)
       : findRecordByValue(sheet, 'Email', clean.Email, true);
     var now = nowIso();
+    var emailOwner = findRecordByValue(sheet, 'Email', clean.Email, true);
+    if (emailOwner && (!existing || emailOwner['User ID'] !== existing['User ID'])) {
+      throw new Error('This email address already belongs to another app user.');
+    }
 
     if (existing) {
+      preventLastAdministratorRemoval_(existing, clean, admin.email, sheet);
       var previous = {
         Email: existing.Email,
         'Full Name': existing['Full Name'],
@@ -45,12 +78,12 @@ function saveUserAccess(record) {
         'Member ID': clean['Member ID'],
         'Updated At': now
       });
-      writeAuditLog('User access updated', 'User', existing['User ID'], previous, clean, 'System Administrator updated user access');
+      safeWriteAuditLog_('User access updated', 'User', existing['User ID'], previous, clean, 'System Administrator updated user access');
       return { ok: true, userId: existing['User ID'], updatedBy: admin.email };
     }
 
-    var userId = getNextId('Users', 'USR');
-    sheet.appendRow([
+    var userId = getNextId_('Users', 'USR');
+    appendSafeRow_(sheet, [
       userId,
       clean.Email,
       clean['Full Name'],
@@ -60,7 +93,7 @@ function saveUserAccess(record) {
       now,
       now
     ]);
-    writeAuditLog('User access added', 'User', userId, '', clean, 'System Administrator added user access');
+    safeWriteAuditLog_('User access added', 'User', userId, '', clean, 'System Administrator added user access');
     return { ok: true, userId: userId, updatedBy: admin.email };
   } finally {
     lock.releaseLock();
@@ -69,18 +102,28 @@ function saveUserAccess(record) {
 
 function deactivateUserAccess(userId) {
   var admin = requireAnyRole([ROLES.SYSTEM_ADMIN]);
-  var sheet = getSheetByName('Users');
-  var user = findRecordByValue(sheet, 'User ID', userId, false);
-  if (!user) {
-    throw new Error('User not found.');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var sheet = getSheetByName('Users');
+    var user = findRecordByValue(sheet, 'User ID', userId, false);
+    if (!user) {
+      throw new Error('User not found.');
+    }
+    preventLastAdministratorRemoval_(user, {
+      Email: user.Email,
+      Roles: user.Roles,
+      Status: 'Inactive'
+    }, admin.email, sheet);
+    updateRecordByHeaders(sheet, user._rowNumber, {
+      Status: 'Inactive',
+      'Updated At': nowIso()
+    });
+    safeWriteAuditLog_('User access deactivated', 'User', userId, user, { Status: 'Inactive' }, 'System Administrator deactivated user access');
+    return { ok: true, userId: userId, updatedBy: admin.email };
+  } finally {
+    lock.releaseLock();
   }
-
-  updateRecordByHeaders(sheet, user._rowNumber, {
-    Status: 'Inactive',
-    'Updated At': nowIso()
-  });
-  writeAuditLog('User access deactivated', 'User', userId, user, { Status: 'Inactive' }, 'System Administrator deactivated user access');
-  return { ok: true, userId: userId, updatedBy: admin.email };
 }
 
 function previewMemberImport(payload) {
@@ -141,6 +184,9 @@ function importMembers(payload) {
         if (!record['Full Name'] || !record['Email Address']) {
           throw new Error('Full Name and Email Address are required.');
         }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(record['Email Address'])) {
+          throw new Error('Email Address is not valid.');
+        }
         if (record['Date of Birth']) {
           record['Date of Birth'] = normalizeBirthdayDayMonth_(record['Date of Birth']);
         }
@@ -150,8 +196,8 @@ function importMembers(payload) {
         }
 
         var now = nowIso();
-        var memberId = getNextId('Members', 'MEM');
-        membersSheet.appendRow([
+        var memberId = getNextId_('Members', 'MEM');
+        appendSafeRow_(membersSheet, [
           memberId,
           record['Full Name'],
           record['Preferred Name'],
@@ -180,8 +226,8 @@ function importMembers(payload) {
           now
         ]);
 
-        usersSheet.appendRow([
-          getNextId('Users', 'USR'),
+        appendSafeRow_(usersSheet, [
+          getNextId_('Users', 'USR'),
           record['Email Address'],
           record['Full Name'],
           ROLES.MEMBER,
@@ -196,7 +242,7 @@ function importMembers(payload) {
       }
     });
 
-    writeAuditLog('Members imported', 'Member Import', 'IMPORT', '', {
+    safeWriteAuditLog_('Members imported', 'Member Import', 'IMPORT', '', {
       imported: imported,
       skipped: skipped,
       errors: errors
@@ -259,10 +305,8 @@ function parseMemberImportRows_(payload) {
     throw new Error('Paste rows or choose a CSV file first.');
   }
   var delimiter = pasted.indexOf('\t') !== -1 ? '\t' : ',';
-  return pasted.split(/\r?\n/).map(function(line) {
-    return line.split(delimiter).map(function(value) {
-      return String(value || '').trim();
-    });
+  return Utilities.parseCsv(pasted, delimiter).map(function(row) {
+    return row.map(function(value) { return String(value || '').trim(); });
   });
 }
 
@@ -340,4 +384,23 @@ function normalizeRolesForStorage_(rolesValue) {
   }
 
   return roles.join(', ');
+}
+
+function preventLastAdministratorRemoval_(existing, proposed, currentAdminEmail, sheet) {
+  var wasAdmin = hasAnyRole(splitRoles(existing.Roles), [ROLES.SYSTEM_ADMIN]) && existing.Status === 'Active';
+  var remainsAdmin = hasAnyRole(splitRoles(proposed.Roles), [ROLES.SYSTEM_ADMIN]) && proposed.Status === 'Active';
+  if (!wasAdmin || remainsAdmin) {
+    return;
+  }
+  var otherActiveAdmins = getSheetRecords(sheet).filter(function(user) {
+    return user['User ID'] !== existing['User ID']
+      && user.Status === 'Active'
+      && hasAnyRole(splitRoles(user.Roles), [ROLES.SYSTEM_ADMIN]);
+  });
+  if (!otherActiveAdmins.length) {
+    throw new Error('You cannot remove or deactivate the last active System Administrator. Add another administrator first.');
+  }
+  if (normalizeEmail(existing.Email) === normalizeEmail(currentAdminEmail)) {
+    throw new Error('For safety, another System Administrator must change your own administrator access.');
+  }
 }
