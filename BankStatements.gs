@@ -447,11 +447,19 @@ function addManualBankStatementLine(record) {
         'Entered By': user.email,
         Status: TRANSACTION_STATUS.SUBMITTED,
         'Submitted At': now,
-        Reason: 'Created from bank statement line ' + bankLineId,
+        Reason: 'Created from bank statement line ' + bankLineId + (clean.Notes ? '. Note: ' + clean.Notes : ''),
         'Created At': now,
         'Updated At': now,
         'Source Bank Line ID': bankLineId
       });
+    }
+    if (clean['Document ID']) {
+      linkDocumentToRecord_(
+        clean['Document ID'],
+        transactionId ? 'Transaction' : 'Bank Statement Line',
+        transactionId || bankLineId,
+        'Optional evidence for manually entered bank item'
+      );
     }
 
     safeWriteAuditLog_('Manual bank statement line entered', 'Bank Statement Line', bankLineId, '', clean, 'Finance Officer entered bank line manually');
@@ -656,6 +664,40 @@ function mapCsvRowToBankLine_(headers, row, mapping) {
     referenceNumber: String(valueFor(mapping.reference) || '').trim(),
     notes: ''
   };
+}
+
+function mapStatementTableRows_(headers, rawRows, mapping) {
+  headers = Array.isArray(headers) ? headers : [];
+  rawRows = Array.isArray(rawRows) ? rawRows : [];
+  mapping = mapping || {};
+  if (!mapping.date) {
+    throw new Error('Choose the column containing the transaction date.');
+  }
+  if (!mapping.description) {
+    throw new Error('Choose the column containing the bank description.');
+  }
+  if (!mapping.amount && !mapping.moneyIn && !mapping.moneyOut) {
+    throw new Error('Choose a Money In, Money Out, or single Amount column.');
+  }
+  var dateIndex = headers.indexOf(mapping.date);
+  if (dateIndex === -1) {
+    throw new Error('The selected transaction-date column could not be found.');
+  }
+
+  return rawRows.reduce(function(mappedRows, row, index) {
+    if (!Array.isArray(row) || !row.some(function(value) { return String(value || '').trim(); })) {
+      return mappedRows;
+    }
+    if (!String(row[dateIndex] || '').trim()) {
+      return mappedRows;
+    }
+    try {
+      mappedRows.push(mapCsvRowToBankLine_(headers, row, mapping));
+    } catch (error) {
+      throw new Error('Statement row ' + (index + 2) + ': ' + error.message);
+    }
+    return mappedRows;
+  }, []);
 }
 
 function extractPdfTextWithDriveOcr_(blob, fileName, folderId) {
@@ -1146,7 +1188,7 @@ function cleanPdfBankLineRow_(row) {
     moneyOut: parseMoney_(row.moneyOut || row['Money Out']),
     runningBalance: parseMoney_(row.runningBalance || row['Running Balance']),
     referenceNumber: String(row.referenceNumber || row['Reference Number'] || '').trim(),
-    notes: String(row.notes || row.Notes || 'Reviewed PDF extraction').trim()
+    notes: String(row.notes || row.Notes || '').trim()
   };
 }
 
@@ -1330,11 +1372,6 @@ function previewBankStatement(fileData) {
   }
   var headers = table.shift().map(function(header) { return String(header || '').trim(); });
   var mapping = suggestCsvMapping_(headers);
-  var canMap = Boolean(mapping.date && mapping.description && (mapping.amount || mapping.moneyIn || mapping.moneyOut));
-  var rows = canMap ? table.filter(function(row) { return row.some(function(value) { return String(value || '').trim(); }); }).map(function(row) {
-    return mapCsvRowToBankLine_(headers, row, mapping);
-  }) : [];
-  rows = addStatementCategorySuggestions_(validateStatementBalanceChain_(rows));
   return {
     accountId: accountId,
     fileName: fileName,
@@ -1343,15 +1380,15 @@ function previewBankStatement(fileData) {
     fileHash: evidence.fileHash,
     duplicateFile: duplicateFile,
     sourceFormat: /\.csv$/i.test(fileName) ? 'CSV' : 'Excel',
-    parserProfile: canMap ? 'Structured columns' : 'Column mapping required',
+    parserProfile: 'Officer-confirmed column mapping',
     headers: headers,
     suggestedMapping: mapping,
-    rawRows: canMap ? [] : table.slice(0, 2000),
-    needsMapping: !canMap,
-    rowCount: rows.length,
-    highConfidenceCount: rows.filter(function(row) { return row.confidence === 'High'; }).length,
-    reviewCount: rows.filter(function(row) { return row.confidence !== 'High'; }).length,
-    rows: rows
+    rawRows: table.slice(0, 2000),
+    needsMapping: true,
+    rowCount: table.length,
+    highConfidenceCount: 0,
+    reviewCount: 0,
+    rows: []
   };
 }
 
@@ -1361,7 +1398,10 @@ function previewMappedBankStatement(payload) {
   var headers = payload.headers || [];
   var rawRows = payload.rawRows || [];
   var mapping = payload.mapping || {};
-  var rows = rawRows.map(function(row) { return mapCsvRowToBankLine_(headers, row, mapping); });
+  var rows = mapStatementTableRows_(headers, rawRows, mapping);
+  if (!rows.length) {
+    throw new Error('No dated statement transactions were found with those column choices. Check the mapping and try again.');
+  }
   return addStatementCategorySuggestions_(validateStatementBalanceChain_(rows));
 }
 
@@ -1515,7 +1555,12 @@ function commitStatementWorkbench(payload) {
     clean.categoryId = String(row.categoryId || row['Category ID'] || '').trim();
     clean.fundId = String(row.fundId || row['Fund ID'] || '').trim();
     clean.counterparty = String(row.counterparty || row['Payer or Payee'] || '').trim();
+    clean.evidenceDocumentId = String(row.evidenceDocumentId || row['Evidence Document ID'] || '').trim();
     clean.resolution = String(row.resolution || 'Classify').trim();
+    clean.splits = Array.isArray(row.splits) && row.splits.length
+      ? cleanBankLineCategorySplits_({ Splits: row.splits }, clean.moneyIn > 0 ? TRANSACTION_TYPES.MONEY_IN : TRANSACTION_TYPES.MONEY_OUT, clean.moneyIn > 0 ? clean.moneyIn : clean.moneyOut)
+      : [];
+    validateOptionalDocument_(clean.evidenceDocumentId);
     assertAccountingPeriodOpen_(accountId, clean.statementDate);
     return clean;
   });
@@ -1524,7 +1569,7 @@ function commitStatementWorkbench(payload) {
   getSheetRecords(getSheetByName('Categories')).forEach(function(category) { categories[category['Category ID']] = category; });
   cleaned.forEach(function(row, index) {
     validateOptionalFund_(row.fundId);
-    if (!row.categoryId || row.resolution === 'Needs Review') {
+    if (row.splits.length || !row.categoryId || row.resolution === 'Needs Review') {
       return;
     }
     var expectedType = row.moneyIn > 0 ? TRANSACTION_TYPES.MONEY_IN : TRANSACTION_TYPES.MONEY_OUT;
@@ -1555,6 +1600,7 @@ function commitStatementWorkbench(payload) {
     var batchKeys = {};
     var lineRows = [];
     var transactionRows = [];
+    var transactionEvidenceLinks = [];
     var duplicateCount = 0;
     var reviewCount = 0;
     var now = nowIso();
@@ -1564,8 +1610,10 @@ function commitStatementWorkbench(payload) {
       var key = makeBankLineKey_(accountId, row);
       var duplicate = Boolean(existingKeys[key] || batchKeys[key]);
       batchKeys[key] = true;
-      var needsReview = row.resolution === 'Needs Review' || !row.categoryId;
+      var needsReview = row.resolution === 'Needs Review' || (!row.categoryId && !row.splits.length);
       var status = duplicate ? 'Duplicate Quarantined' : (needsReview ? MATCH_STATUS.NEEDS_REVIEW : MATCH_STATUS.READY_TO_PUBLISH);
+      var lineCategoryId = row.splits.length === 1 ? row.splits[0].categoryId : row.categoryId;
+      var lineFundId = row.splits.length === 1 ? row.splits[0].fundId : row.fundId;
       if (duplicate) { duplicateCount++; }
       if (needsReview) { reviewCount++; }
       lineRows.push(makeRowForHeaders_(lineSheet, {
@@ -1579,15 +1627,15 @@ function commitStatementWorkbench(payload) {
         'Running Balance': row.runningBalance,
         'Reference Number': row.referenceNumber,
         Status: status,
-        Notes: row.reviewReason || row.notes,
+        Notes: (row.notes || row.reviewReason) + (row.splits.length > 1 ? ((row.notes || row.reviewReason) ? ' ' : '') + 'Split into ' + row.splits.length + ' classifications.' : ''),
         'Document ID': documentId,
         'Created At': now,
         'Updated At': now,
         'Row Number': row.rowNumber,
         'Raw Source Text': row.sourceText,
         'Extraction Confidence': row.confidence,
-        'Category ID': row.categoryId,
-        'Fund ID': row.fundId,
+        'Category ID': lineCategoryId,
+        'Fund ID': lineFundId,
         Counterparty: row.counterparty,
         'Review Status': duplicate ? 'Duplicate Quarantined' : (needsReview ? 'Needs Review' : 'Classified'),
         'Source File Hash': fileHash,
@@ -1596,28 +1644,46 @@ function commitStatementWorkbench(payload) {
 
       if (!duplicate && !needsReview) {
         var transactionType = row.moneyIn > 0 ? TRANSACTION_TYPES.MONEY_IN : TRANSACTION_TYPES.MONEY_OUT;
-        var transactionId = makeId('TXN', transactionSequence++);
-        transactionRows.push(makeRowForHeaders_(transactionSheet, {
-          'Transaction ID': transactionId,
-          'Transaction Type': transactionType,
-          Date: row.statementDate,
-          Amount: row.moneyIn > 0 ? row.moneyIn : row.moneyOut,
-          'Account ID': accountId,
-          'Payer or Payee': row.counterparty || row.description,
-          'Category ID': row.categoryId,
-          Description: row.description,
-          'Reference Number': row.referenceNumber,
-          'Payment Method': 'Bank Statement',
-          'Fund ID': row.fundId,
-          'Document ID': documentId,
-          'Entered By': user.email,
-          Status: TRANSACTION_STATUS.SUBMITTED,
-          'Submitted At': now,
-          Reason: 'Created from bank statement line ' + bankLineId,
-          'Created At': now,
-          'Updated At': now,
-          'Source Bank Line ID': bankLineId
-        }));
+        var preparedSplits = row.splits.length ? row.splits : [{
+          amount: row.moneyIn > 0 ? row.moneyIn : row.moneyOut,
+          categoryId: row.categoryId,
+          fundId: row.fundId,
+          payerOrPayee: row.counterparty,
+          description: row.description
+        }];
+        var preparedTransactionIds = [];
+        preparedSplits.forEach(function(split, splitIndex) {
+          var transactionId = makeId('TXN', transactionSequence++);
+          preparedTransactionIds.push(transactionId);
+          transactionRows.push(makeRowForHeaders_(transactionSheet, {
+            'Transaction ID': transactionId,
+            'Transaction Type': transactionType,
+            Date: row.statementDate,
+            Amount: split.amount,
+            'Account ID': accountId,
+            'Payer or Payee': split.payerOrPayee || row.counterparty || row.description,
+            'Category ID': split.categoryId,
+            Description: split.description || row.description,
+            'Reference Number': row.referenceNumber,
+            'Payment Method': 'Bank Statement',
+            'Fund ID': split.fundId || '',
+            'Document ID': row.evidenceDocumentId || documentId,
+            'Entered By': user.email,
+            Status: TRANSACTION_STATUS.SUBMITTED,
+            'Submitted At': now,
+            Reason: 'Created from bank statement line ' + bankLineId + (preparedSplits.length > 1 ? ' split ' + (splitIndex + 1) + ' of ' + preparedSplits.length : '') + (row.notes ? '. Note: ' + row.notes : ''),
+            'Created At': now,
+            'Updated At': now,
+            'Source Bank Line ID': bankLineId
+          }));
+        });
+      }
+      if (row.evidenceDocumentId) {
+        transactionEvidenceLinks.push({
+          documentId: row.evidenceDocumentId,
+          recordType: preparedTransactionIds && preparedTransactionIds.length === 1 ? 'Transaction' : 'Bank Statement Line',
+          recordId: preparedTransactionIds && preparedTransactionIds.length === 1 ? preparedTransactionIds[0] : bankLineId
+        });
       }
     });
 
@@ -1646,6 +1712,9 @@ function commitStatementWorkbench(payload) {
       if (transactionRows.length) {
         transactionSheet.getRange(transactionSheet.getLastRow() + 1, 1, transactionRows.length, transactionRows[0].length).setValues(transactionRows);
       }
+      transactionEvidenceLinks.forEach(function(link) {
+        linkDocumentToRecord_(link.documentId, link.recordType, link.recordId, 'Optional evidence attached during statement review');
+      });
       organizeStatementFileByYear_(fileId, statementDates[0]);
       updateRecordByHeaders(importSheet, processingImport._rowNumber, {
         'Import Status': duplicateCount ? BANK_IMPORT_STATUS.DUPLICATE_WARNING : BANK_IMPORT_STATUS.IMPORTED,

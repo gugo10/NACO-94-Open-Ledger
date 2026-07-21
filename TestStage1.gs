@@ -17,6 +17,7 @@ function runStage1Tests() {
     testValidateRequired_(),
     testNormalizeRolesForStorage_(),
     testSuggestCsvMapping_(),
+    testStatementMappingSkipsUndatedTotals_(),
     testMakeBankLineKey_(),
     testDaysBetween_(),
     testSharesWord_(),
@@ -37,6 +38,13 @@ function runStage1Tests() {
     testCleanImportedMemberRecord_(),
     testBuildIncomeExpenditureCsvRows_(),
     testBuildFinancialPositionCsvRows_(),
+    testBuildCashFlowCsvRows_(),
+    testAppendReportNotesCsvRows_(),
+    testCleanReportAdjustments_(),
+    testSummarizeReportAdjustments_(),
+    testApplyReportAdjustmentsToActivities_(),
+    testExtractTransactionNote_(),
+    testCleanBankLineNoteForReport_(),
     testParsePdfStatementLineWithDebitCreditBalance_(),
     testParsePdfStatementLineWithSignedAmount_(),
     testParseCombinedPdfStatementLines_(),
@@ -235,6 +243,27 @@ function testSuggestCsvMapping_() {
     balance: 'Balance',
     reference: 'Reference'
   });
+}
+
+function testStatementMappingSkipsUndatedTotals_() {
+  var headers = ['EntryDate', 'Details', 'ValueDate', 'Debit', 'Credit', 'Balance'];
+  var mapping = suggestCsvMapping_(headers);
+  var rows = mapStatementTableRows_(headers, [
+    ['01-FEB-25', 'Balance B/F', '', '0.00', '0.00', '280167.34'],
+    ['07-FEB-25', 'SMS SERVICE CHARGE', '07-FEB-25', '16.00', '0.00', '280151.34'],
+    ['', 'Totals..........', '', '2453735.19', '3407290.55', '']
+  ], mapping);
+  return assertEqual_('statement mapping skips an undated totals row', rows.map(function(row) {
+    return {
+      statementDate: row.statementDate,
+      description: row.description,
+      moneyIn: row.moneyIn,
+      moneyOut: row.moneyOut
+    };
+  }), [
+    { statementDate: '2025-02-01', description: 'Balance B/F', moneyIn: 0, moneyOut: 0 },
+    { statementDate: '2025-02-07', description: 'SMS SERVICE CHARGE', moneyIn: 0, moneyOut: 16 }
+  ]);
 }
 
 function testMakeBankLineKey_() {
@@ -438,6 +467,14 @@ function testBuildFinancialPositionCsvRows_() {
       bankBalance: 1000,
       cashAtHand: 200,
       totalFundsAvailable: 1200,
+      receivables: 0,
+      otherAssets: 0,
+      totalAssets: 1200,
+      payables: 0,
+      deferredIncome: 0,
+      otherLiabilities: 0,
+      totalLiabilities: 0,
+      netAssets: 1200,
       representedFundsTotal: 1200
     },
     accountRows: [{ name: 'Main Bank', amount: 1000 }, { name: 'Cash Box', amount: 200 }],
@@ -449,15 +486,127 @@ function testBuildFinancialPositionCsvRows_() {
     ['Bank Balance', 1000],
     ['Cash at Hand', 200],
     ['Total Funds Available', 1200],
-    ['Represented Funds', 1200],
+    ['Total Assets', 1200],
+    ['Total Liabilities', 0],
+    ['Net Assets', 1200],
     [],
-    ['Funds Available', 'Amount'],
+    ['Assets', 'Amount'],
     ['Main Bank', 1000],
     ['Cash Box', 200],
+    ['Receivables / Debtors', 0],
+    ['Other Assets', 0],
+    ['Total Assets', 1200],
     [],
-    ['Represented By', 'Amount'],
+    ['Liabilities', 'Amount'],
+    ['Payables / Creditors', 0],
+    ['Deferred Income', 0],
+    ['Other Liabilities', 0],
+    ['Total Liabilities', 0],
+    [],
+    ['Accumulated and Project Funds', 'Amount'],
     ['General Association Fund', 1200]
   ]);
+}
+
+function testBuildCashFlowCsvRows_() {
+  var rows = buildReportCsvRows_({
+    reportType: 'Statement of Cash Flows',
+    periodLabel: 'For the period 01-07-2026 to 31-07-2026',
+    generatedAt: '2026-07-31T00:00:00.000Z',
+    summary: {
+      cashReceipts: 1000,
+      cashPayments: 250,
+      netOperatingCashFlow: 750,
+      netInvestingCashFlow: 0,
+      netFinancingCashFlow: 0,
+      netIncreaseInCash: 750,
+      openingCash: 500,
+      closingCash: 1250
+    },
+    receiptRows: [{ name: 'Membership Dues', amount: 1000 }],
+    paymentRows: [{ name: 'Bank Charges', amount: 250 }]
+  });
+  return assertEqual_('cash flow CSV reconciles opening and closing cash', rows.slice(4, 13), [
+    ['Cash Flow Item', 'Amount'],
+    ['Cash receipts from operating activities', 1000],
+    ['Cash payments for operating activities', -250],
+    ['Net cash from operating activities', 750],
+    ['Net cash from investing activities', 0],
+    ['Net cash from financing activities', 0],
+    ['Net increase / (decrease) in cash', 750],
+    ['Cash and cash equivalents at start', 500],
+    ['Cash and cash equivalents at end', 1250]
+  ]);
+}
+
+function testAppendReportNotesCsvRows_() {
+  return assertEqual_('report CSV includes organized numbered notes', appendReportNotesCsvRows_([['Report', 'Test']], [{
+    number: 1,
+    title: 'Basis of preparation',
+    paragraphs: ['Published records only.'],
+    rows: [{ name: 'Receivables', amount: 0 }]
+  }]), [
+    ['Report', 'Test'],
+    [],
+    ['Notes to the Financial Statements'],
+    [],
+    ['Note 1 - Basis of preparation'],
+    ['Published records only.'],
+    ['Detail', 'Amount'],
+    ['Receivables', 0]
+  ]);
+}
+
+function testCleanReportAdjustments_() {
+  return assertEqual_('report adjustments keep positive guided period-end items', cleanReportAdjustments_([
+    { type: REPORT_ADJUSTMENT_TYPES.INCOME_RECEIVABLE, amount: '1,500', description: 'Outstanding dues' },
+    { type: REPORT_ADJUSTMENT_TYPES.EXPENSE_PAYABLE, amount: '0', description: '' }
+  ]), [
+    { type: 'Income Earned but Not Received', amount: 1500, description: 'Outstanding dues' }
+  ]);
+}
+
+function testSummarizeReportAdjustments_() {
+  return assertEqual_('period-end adjustments produce balanced statement totals', summarizeReportAdjustments_([
+    { type: REPORT_ADJUSTMENT_TYPES.INCOME_RECEIVABLE, amount: 1000, description: 'Dues' },
+    { type: REPORT_ADJUSTMENT_TYPES.EXPENSE_PAYABLE, amount: 300, description: 'Utilities' },
+    { type: REPORT_ADJUSTMENT_TYPES.DEFERRED_INCOME, amount: 200, description: 'Future event' },
+    { type: REPORT_ADJUSTMENT_TYPES.PREPAID_EXPENSE, amount: 50, description: 'Annual service' }
+  ]), {
+    receivables: 1000,
+    payables: 300,
+    deferredIncome: 200,
+    prepaidExpenses: 50,
+    netAssetsAdjustment: 550
+  });
+}
+
+function testApplyReportAdjustmentsToActivities_() {
+  var income = { 'Cash Dues': 1000 };
+  var expenditure = { 'Cash Welfare': 300 };
+  applyReportAdjustmentsToActivities_(income, expenditure, [
+    { type: REPORT_ADJUSTMENT_TYPES.INCOME_RECEIVABLE, amount: 200, description: 'Dues Receivable' },
+    { type: REPORT_ADJUSTMENT_TYPES.DEFERRED_INCOME, amount: 50, description: 'Future Event Income' },
+    { type: REPORT_ADJUSTMENT_TYPES.EXPENSE_PAYABLE, amount: 100, description: 'Unpaid Welfare Bill' },
+    { type: REPORT_ADJUSTMENT_TYPES.PREPAID_EXPENSE, amount: 20, description: 'Prepaid Service' }
+  ]);
+  return assertEqual_('period-end items adjust activities without changing cash', {
+    income: income,
+    expenditure: expenditure,
+    netActivity: sumAmountRows_(objectToAmountRows_(income)) - sumAmountRows_(objectToAmountRows_(expenditure))
+  }, {
+    income: { 'Cash Dues': 1000, 'Dues Receivable': 200, 'Future Event Income': -50 },
+    expenditure: { 'Cash Welfare': 300, 'Unpaid Welfare Bill': 100, 'Prepaid Service': -20 },
+    netActivity: 770
+  });
+}
+
+function testExtractTransactionNote_() {
+  return assertEqual_('bank-row explanation is reused without technical workflow text', extractTransactionNote_('Created from bank statement line BANK-0001. Note: Roofing first payment | Publisher note: Checked'), 'Roofing first payment');
+}
+
+function testCleanBankLineNoteForReport_() {
+  return assertEqual_('bank-line note drops automatic split wording', cleanBankLineNoteForReport_('Roofing first payment. Split into 3 classifications.'), 'Roofing first payment.');
 }
 
 function testParsePdfStatementLineWithDebitCreditBalance_() {

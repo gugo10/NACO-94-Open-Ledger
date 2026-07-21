@@ -33,12 +33,14 @@ function isInternalTransferType_(transactionType) {
 function getFinanceData() {
   var user = requireAnyRole([ROLES.MEMBER, ROLES.FINANCE_OFFICER, ROLES.PUBLISHER, ROLES.REVIEWER, ROLES.SYSTEM_ADMIN]);
   var isFinanceUser = hasAnyRole(user.roles, [ROLES.FINANCE_OFFICER, ROLES.PUBLISHER, ROLES.REVIEWER, ROLES.SYSTEM_ADMIN]);
+  var approvedTransactions = getApprovedTransactions_();
 
   return {
     accounts: getActiveAccounts_(),
     categories: getActiveCategories_(),
     funds: getActiveFunds_(),
-    approvedTransactions: getApprovedTransactions_().slice(0, 50),
+    approvedTransactions: approvedTransactions.slice(-100).reverse(),
+    approvedTransactionCount: approvedTransactions.length,
     pendingTransactions: isFinanceUser ? getPendingTransactions_() : [],
     summary: getFinancialSummary_(),
     canEnterFinance: hasFinanceOfficerOrSystemAdmin(user.roles),
@@ -110,6 +112,15 @@ function addFundProject(record) {
 
 function addFinanceCategory(record) {
   var user = requireAnyRole([ROLES.SYSTEM_ADMIN]);
+  return createFinanceCategory_(record, user, false);
+}
+
+function addStatementClassification(record) {
+  var user = requireFinanceOfficerOrSystemAdmin();
+  return createFinanceCategory_(record, user, true);
+}
+
+function createFinanceCategory_(record, user, reuseExisting) {
   var clean = {
     categoryType: String((record || {}).categoryType || '').trim(),
     categoryName: String((record || {}).categoryName || '').trim()
@@ -127,11 +138,21 @@ function addFinanceCategory(record) {
 
   try {
     var sheet = getSheetByName('Categories');
-    var duplicate = getSheetRecords(sheet).some(function(category) {
+    var duplicate = getSheetRecords(sheet).filter(function(category) {
       return category['Category Type'] === clean.categoryType
+        && category.Status === 'Active'
         && String(category['Category Name'] || '').trim().toLowerCase() === clean.categoryName.toLowerCase();
-    });
+    })[0];
     if (duplicate) {
+      if (reuseExisting) {
+        return {
+          ok: true,
+          categoryId: duplicate['Category ID'],
+          categoryType: duplicate['Category Type'],
+          categoryName: duplicate['Category Name'],
+          created: false
+        };
+      }
       throw new Error('This category already exists.');
     }
     var categoryId = getNextId_('Categories', 'CAT');
@@ -145,8 +166,14 @@ function addFinanceCategory(record) {
       now
     ]);
 
-    safeWriteAuditLog_('Finance category created', 'Category', categoryId, '', clean, 'System Administrator added finance category');
-    return { ok: true, categoryId: categoryId };
+    safeWriteAuditLog_('Finance category created', 'Category', categoryId, '', clean, reuseExisting ? 'Finance Officer added classification during statement review' : 'System Administrator added finance category');
+    return {
+      ok: true,
+      categoryId: categoryId,
+      categoryType: clean.categoryType,
+      categoryName: clean.categoryName,
+      created: true
+    };
   } finally {
     lock.releaseLock();
   }

@@ -360,6 +360,172 @@
         gap: 12px;
       }
 
+      .statement-grid {
+        min-width: 940px;
+        table-layout: fixed;
+        font-size: 12px;
+      }
+
+      .statement-grid th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        white-space: nowrap;
+        padding: 7px 6px;
+        font-size: 11px;
+      }
+
+      .statement-grid td {
+        padding: 6px;
+        vertical-align: middle;
+      }
+
+      .statement-grid input,
+      .statement-grid select,
+      .statement-grid textarea {
+        min-height: 38px;
+        border-radius: 6px;
+        padding: 7px;
+      }
+
+      .statement-grid textarea {
+        min-height: 46px;
+        min-width: 125px;
+        font-size: 12px;
+        line-height: 1.3;
+      }
+
+      .statement-grid input,
+      .statement-grid select {
+        font-size: 12px;
+      }
+
+      .statement-grid .action {
+        min-height: 32px;
+        padding: 5px 7px;
+        font-size: 11px;
+      }
+
+      .statement-grid .include-cell {
+        text-align: center;
+      }
+
+      .statement-grid .include-cell input {
+        width: 22px;
+        min-height: 22px;
+      }
+
+      .statement-grid .amount-cell {
+        width: 92px;
+      }
+
+      .statement-grid .description-cell {
+        width: 190px;
+      }
+
+      .statement-grid .category-cell {
+        width: 165px;
+      }
+
+      .statement-grid .evidence-cell {
+        width: 155px;
+      }
+
+      .statement-review-scroll {
+        margin-top: 10px;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+        overscroll-behavior-x: contain;
+        scrollbar-color: var(--green) #e8eee9;
+        scrollbar-width: auto;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+
+      .statement-review-scroll::-webkit-scrollbar {
+        height: 12px;
+      }
+
+      .statement-review-scroll::-webkit-scrollbar-track {
+        background: #e8eee9;
+      }
+
+      .statement-review-scroll::-webkit-scrollbar-thumb {
+        background: var(--green);
+        border: 2px solid #e8eee9;
+        border-radius: 999px;
+      }
+
+      .statement-scroll-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .statement-scroll-controls .action {
+        min-height: 36px;
+        padding: 7px 10px;
+        font-size: 12px;
+      }
+
+      .statement-scroll-hint {
+        flex: 1 1 190px;
+        text-align: center;
+        font-size: 12px;
+      }
+
+      .statement-split-row td {
+        background: #f7fbf8;
+        padding: 12px 16px 16px;
+      }
+
+      .statement-split-editor {
+        border-left: 4px solid var(--green);
+        padding-left: 12px;
+      }
+
+      .statement-split-list {
+        display: grid;
+        gap: 8px;
+        margin: 10px 0;
+      }
+
+      .statement-split-line {
+        display: grid;
+        grid-template-columns: minmax(110px, 0.6fr) minmax(190px, 1.2fr) minmax(170px, 1fr) auto;
+        gap: 8px;
+        align-items: end;
+      }
+
+      .statement-split-line input,
+      .statement-split-line select {
+        min-height: 40px;
+      }
+
+      .split-balanced {
+        border-left-color: var(--green);
+        background: var(--green-soft);
+      }
+
+      .simple-steps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 12px 0 16px;
+      }
+
+      .simple-step {
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: var(--green-soft);
+        color: var(--green-dark);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
       .statement-card {
         border: 1px solid var(--line);
         border-left: 5px solid var(--gold);
@@ -497,6 +663,77 @@
         background: #f8fbf8;
       }
 
+      .financial-report {
+        max-width: 920px;
+        margin: 0 auto;
+      }
+
+      .financial-report-cover {
+        text-align: center;
+        padding: 30px 18px;
+        border-top: 5px solid var(--green);
+      }
+
+      .financial-report-cover h2,
+      .financial-report-cover h3 {
+        margin-bottom: 6px;
+      }
+
+      .financial-statement {
+        break-inside: avoid;
+      }
+
+      .financial-statement table {
+        min-width: 0;
+      }
+
+      .financial-statement td:last-child,
+      .financial-statement th:last-child {
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .statement-section-row td {
+        padding-top: 18px;
+        color: var(--green-dark);
+        font-weight: 800;
+        border-bottom: 2px solid var(--green);
+      }
+
+      .statement-total-row td {
+        font-weight: 800;
+        border-top: 1px solid var(--ink);
+        border-bottom: 3px double var(--ink);
+      }
+
+      .statement-subtotal-row td {
+        font-weight: 800;
+        border-top: 1px solid var(--line);
+      }
+
+      .report-note {
+        border-top: 1px solid var(--line);
+        padding: 16px 0 4px;
+        break-inside: avoid;
+      }
+
+      .report-note h4 {
+        margin: 0 0 8px;
+        font-size: 15px;
+      }
+
+      .report-note table {
+        min-width: 0;
+        margin-top: 8px;
+      }
+
+      .report-disclosure {
+        border-left: 4px solid var(--green);
+        background: var(--green-soft);
+        padding: 12px;
+        border-radius: 8px;
+      }
+
       @media (max-width: 640px) {
         .app-title {
           font-size: 21px;
@@ -514,6 +751,27 @@
 
         .split-row {
           grid-template-columns: 1fr;
+        }
+
+        .statement-split-line {
+          grid-template-columns: 1fr;
+        }
+
+        .statement-review-scroll {
+          width: calc(100% + 28px);
+          margin-left: -14px;
+          margin-right: -14px;
+          border-radius: 0;
+        }
+
+        .statement-scroll-controls {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .statement-scroll-hint {
+          grid-column: 1 / -1;
+          grid-row: 1;
         }
 
         .statement-fields,
@@ -542,6 +800,56 @@
 
         .nav button {
           min-height: 44px;
+        }
+      }
+
+      @media print {
+        body {
+          background: #ffffff;
+          font-size: 11pt;
+        }
+
+        .app-header,
+        .status-bar,
+        .nav,
+        .busy-bar,
+        .toast,
+        #reportControls,
+        body > main > section:not(#reportOutput) {
+          display: none !important;
+        }
+
+        main {
+          max-width: none;
+          padding: 0;
+        }
+
+        #reportOutput {
+          display: block !important;
+        }
+
+        .panel {
+          border: 0;
+          box-shadow: none;
+          padding: 10px 0;
+          margin: 0 0 14px;
+        }
+
+        .financial-report-cover {
+          padding-top: 60px;
+          min-height: 40vh;
+        }
+
+        .financial-statement {
+          break-before: page;
+        }
+
+        .financial-report > .financial-statement:first-child {
+          break-before: auto;
+        }
+
+        .table-wrap {
+          overflow: visible;
         }
       }
     </style>
@@ -582,6 +890,7 @@
         pendingRequests: [],
         finance: null,
         administration: null,
+        currentReport: null,
         busy: false,
         busyTimer: null,
         toastTimer: null
@@ -600,13 +909,13 @@
         },
         bankMatching: {
           title: 'Bank Statements',
-          body: 'Finance Officers upload bank lines, split bulk payments into categories, and prepare reconciliations.',
-          actions: ['Upload Bank Statement', 'Categorise Bank Lines']
+          body: 'Finance Officers upload an Excel/CSV statement or enter one bank item, then choose simple classifications.',
+          actions: ['Upload Excel or CSV', 'Enter One Bank Item']
         },
         reports: {
           title: 'Reports',
-          body: 'Published monthly, quarterly and annual reports will appear here when reporting is added.',
-          actions: ['Monthly Summary', 'Annual Summary']
+          body: 'Generate nonprofit financial statements, cash flows, notes, and specialized project reports from published records.',
+          actions: ['Financial Statements', 'Project Reports']
         },
         members: {
           title: 'Members',
@@ -971,7 +1280,7 @@
             ${metricCard('Last Updated', formatShortDateTime(summary.lastUpdated))}
           </section>
           ${renderAccountsPanel(data.accounts)}
-          ${renderApprovedTransactionsPanel(data.approvedTransactions)}
+          ${renderApprovedTransactionsPanel(data.approvedTransactions, false, data.approvedTransactionCount)}
         `;
       }
 
@@ -994,13 +1303,17 @@
           .getFinanceData();
       }
 
-      function refreshFinances(message) {
+      function refreshFinances(message, focusPublished) {
         google.script.run
           .withSuccessHandler(function(data) {
             state.finance = data;
             drawFinances(data);
             if (message) {
               showMessage(message);
+            }
+            if (focusPublished) {
+              const publishedPanel = document.getElementById('publishedTransactionsPanel');
+              if (publishedPanel) { publishedPanel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
             }
           })
           .withFailureHandler(function(error) {
@@ -1022,13 +1335,13 @@
             <h2>Finances</h2>
             <p class="muted">Members see published records only. Finance Officers prepare records and Publishers make them visible.</p>
           </section>
+          ${renderPublishPanel(data)}
+          ${renderApprovedTransactionsPanel(data.approvedTransactions, data.canEnterFinance, data.approvedTransactionCount)}
+          <div id="correctionPanel"></div>
+          ${renderAccountsPanel(data.accounts)}
           ${renderFinanceEntryPanels(data)}
           <div id="cashPanel"></div>
-          ${renderPublishPanel(data)}
           ${renderFinanceSettingsPanel(data)}
-          ${renderAccountsPanel(data.accounts)}
-          <div id="correctionPanel"></div>
-          ${renderApprovedTransactionsPanel(data.approvedTransactions, data.canEnterFinance)}
         `;
 
         bindFinanceForms(data);
@@ -1188,7 +1501,17 @@
 
       function renderPublishPanel(data) {
         if (!data.canPublishFinance) {
-          return '';
+          if (!data.pendingTransactions.length) {
+            return '';
+          }
+          return `
+            <section class="panel message">
+              <h3>Waiting for a Publisher</h3>
+              <p><strong>${escapeHtml(data.pendingTransactions.length)} transaction(s)</strong> have been sent for publishing.</p>
+              <p class="muted">This account can view them but cannot publish them. Sign in with a separate account that has the <strong>Publisher</strong> role. The person who entered a transaction cannot publish the same transaction.</p>
+              ${renderTransactionTable(data.pendingTransactions, false, false)}
+            </section>
+          `;
         }
 
         return `
@@ -1270,10 +1593,12 @@
         `;
       }
 
-      function renderApprovedTransactionsPanel(transactions, canCorrect) {
+      function renderApprovedTransactionsPanel(transactions, canCorrect, totalCount) {
+        totalCount = Number(totalCount || transactions.length || 0);
         return `
-          <section class="panel">
-            <h3>Published Transactions</h3>
+          <section class="panel" id="publishedTransactionsPanel">
+            <h3>Recent Published Transactions</h3>
+            <p class="muted small">Newest records appear first. ${totalCount > transactions.length ? `Showing the newest ${escapeHtml(transactions.length)} of ${escapeHtml(totalCount)} published records; use Reports to find older records.` : `${escapeHtml(totalCount)} published record(s) in total.`}</p>
             ${transactions.length ? renderTransactionTable(transactions, false, canCorrect) : '<p class="muted">No published transactions yet.</p>'}
           </section>
         `;
@@ -1411,7 +1736,7 @@
         if (!confirm(decision + ' ' + ids.length + ' selected transaction(s)?')) { return; }
         showBusy('Reviewing selected transactions...');
         google.script.run
-          .withSuccessHandler(function(result) { hideBusy(); refreshFinances(result.count + ' transaction(s) ' + decision.toLowerCase() + '.'); })
+          .withSuccessHandler(function(result) { hideBusy(); refreshFinances(result.count + ' transaction(s) ' + decision.toLowerCase() + '.', decision === 'Published'); })
           .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
           .publishTransactionsBatch(ids, decision, reason);
       }
@@ -1473,7 +1798,7 @@
         if (reason === null) { return; }
         showBusy('Reviewing the complete correction...');
         google.script.run
-          .withSuccessHandler(function() { hideBusy(); refreshFinances('Correction batch ' + decision.toLowerCase() + '.'); })
+          .withSuccessHandler(function() { hideBusy(); refreshFinances('Correction batch ' + decision.toLowerCase() + '.', decision === 'Published'); })
           .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
           .publishCorrectionBatch(batchId, decision, reason);
       }
@@ -1485,7 +1810,7 @@
         if (reason === null) { return; }
         showBusy('Reviewing both sides of the internal transfer...');
         google.script.run
-          .withSuccessHandler(function() { hideBusy(); refreshFinances('Internal transfer ' + decision.toLowerCase() + '.'); })
+          .withSuccessHandler(function() { hideBusy(); refreshFinances('Internal transfer ' + decision.toLowerCase() + '.', decision === 'Published'); })
           .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
           .publishTransferGroup(groupId, decision, reason);
       }
@@ -1582,7 +1907,7 @@
 
         google.script.run
           .withSuccessHandler(function() {
-            refreshFinances('Transaction ' + decision.toLowerCase() + '.');
+            refreshFinances('Transaction ' + decision.toLowerCase() + '.', decision === 'Published');
           })
           .withFailureHandler(function(error) {
             alert(error.message || String(error));
@@ -1648,20 +1973,22 @@
         document.getElementById('app').innerHTML = `
           <section class="panel">
             <h2>Bank Statements</h2>
-            <p class="muted">Upload bank records first, categorise each bank line, and let published records stay tied to the bank balance.</p>
+            <p class="muted">A simple place to copy bank activity into the ledger. Use an Excel/CSV file or enter one item manually.</p>
+            <div class="simple-steps"><span class="simple-step">1. Add statement</span><span class="simple-step">2. Choose classifications</span><span class="simple-step">3. Send to Publisher</span></div>
           </section>
           ${data.canManageBankStatements ? renderBankStatementEntryPanels(data) : ''}
-          ${renderMatchWorkspace(matchData)}
-          ${renderBankImports(data.imports)}
-          ${renderBankLines(data.lines)}
-          ${renderReconciliations(matchData.reconciliations, matchData.canPublish)}
+          <details class="legacy-tools">
+            <summary>Advanced officer tools and history</summary>
+            <p class="muted small">Matching, reconciliation, duplicate review, and import history are kept here so they do not complicate everyday statement entry.</p>
+            ${renderMatchWorkspace(matchData)}
+            ${renderBankImports(data.imports)}
+            ${renderBankLines(data.lines)}
+            ${renderReconciliations(matchData.reconciliations, matchData.canPublish)}
+          </details>
         `;
 
         if (data.canManageBankStatements) {
           document.getElementById('unifiedStatementForm').addEventListener('submit', submitUnifiedStatementPreview);
-          document.getElementById('csvPreviewForm').addEventListener('submit', submitCsvPreview);
-          document.getElementById('pdfPreviewForm').addEventListener('submit', submitPdfPreview);
-          document.getElementById('pdfUploadForm').addEventListener('submit', submitPdfUpload);
           document.getElementById('manualBankLineForm').addEventListener('submit', submitManualBankLine);
         }
         const bankLineFilterForm = document.getElementById('bankLineFilterForm');
@@ -1685,70 +2012,41 @@
       function renderBankStatementEntryPanels(data) {
         return `
           <section class="panel">
-            <h3>Upload and Classify a Statement</h3>
-            <p class="muted">Recommended: upload PDF, Excel, or CSV once. Review the bank amounts, choose a classification beside each transaction, then send the batch to the Publisher.</p>
+            <h3>Option 1: Upload Excel or CSV</h3>
+            <p class="muted">Download the statement from the bank as Excel or CSV. The app will show the transactions in an editable spreadsheet below.</p>
             <form id="unifiedStatementForm" class="form-grid">
               ${selectField('Association account', 'Account ID', data.accounts.map(accountOption))}
-              ${fileField('Bank statement', 'Statement File', 'application/pdf,.pdf,.xls,.xlsx,.csv,text/csv', 'PDF, Excel, or CSV up to 10 MB.')}
-              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Review Statement</button></div>
+              ${fileField('Excel or CSV statement', 'Statement File', '.xls,.xlsx,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv', 'Excel (.xls or .xlsx) or CSV only, up to 10 MB.')}
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Open Statement</button></div>
             </form>
             <div id="statementWorkbench"></div>
           </section>
+          <section class="panel">
+            <h3>Option 2: Enter One Bank Item</h3>
+            <p class="muted">Use this when there is no statement file or you only need to add one transaction.</p>
+            <form id="manualBankLineForm" class="form-grid">
+              ${selectField('Association account', 'Account ID', data.accounts.map(accountOption))}
+              ${dateInputField('Date', 'Statement Date', todayDisplay())}
+              <div style="grid-column: 1 / -1;">${inputField('Bank description', 'Description', '')}</div>
+              ${inputField('Money In', 'Money In', '')}
+              ${inputField('Money Out', 'Money Out', '')}
+              ${selectField('Classification', 'Category ID', [{ value: '', label: 'Choose classification' }].concat((state.finance.categories || []).map(function(category) {
+                return { value: category.categoryId, label: category.categoryType + ' - ' + category.categoryName };
+              })))}
+              ${selectField('Fund or project (optional)', 'Fund ID', [{ value: '', label: 'General / none' }].concat((state.finance.funds || []).map(fundOption)))}
+              ${inputField('Reference (optional)', 'Reference Number', '')}
+              <div style="grid-column: 1 / -1;">${textAreaField('Member explanation (optional)', 'Notes', '')}<p class="muted small">Use plain language. This explanation may appear in a Publisher-approved financial report.</p></div>
+              ${fileField('Evidence (optional)', 'Evidence File', 'application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png', 'Receipt or proof: PDF, JPG, or PNG up to 5 MB.')}
+              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Send Item To Publisher</button></div>
+            </form>
+          </section>
           ${data.drafts && data.drafts.length ? `<section class="panel">
-            <h3>Saved Statement Reviews</h3>
+            <h3>Saved Work</h3>
             <p class="muted">Continue a long review without starting again.</p>
             <div class="request-list">${data.drafts.map(function(draft) {
               return `<div class="request-card"><strong>${escapeHtml(draft.fileName)}</strong><br><span class="small muted">${escapeHtml(draft.sourceFormat)} - Saved ${escapeHtml(formatShortDateTime(draft.savedAt))} by ${escapeHtml(draft.savedBy)}</span><div class="action-row"><button class="action secondary" type="button" data-resume-statement-draft="${escapeAttr(draft.draftId)}">Resume</button><button class="action danger" type="button" data-discard-statement-draft="${escapeAttr(draft.draftId)}">Discard</button></div></div>`;
             }).join('')}</div>
           </section>` : ''}
-          <details class="legacy-tools">
-            <summary>Separate CSV, PDF evidence, and manual tools</summary>
-          <section class="panel">
-            <h3>Upload CSV Bank Statement</h3>
-            <form id="csvPreviewForm" class="form-grid">
-              ${selectField('Account', 'Account ID', data.accounts.map(accountOption))}
-              ${fileField('CSV bank statement', 'CSV File', '.csv,text/csv', 'CSV file exported from the bank.')}
-              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Preview CSV</button></div>
-            </form>
-            <div id="csvPreview"></div>
-          </section>
-          <section class="panel">
-            <h3>Extract PDF Bank Statement</h3>
-            <p class="muted">PDF extraction is a helper, not final approval. Check every row before importing.</p>
-            <form id="pdfPreviewForm" class="form-grid">
-              ${selectField('Account', 'Account ID', data.accounts.map(accountOption))}
-              ${fileField('PDF bank statement', 'PDF File', 'application/pdf,.pdf', 'PDF bank statement up to 10 MB. The app will extract likely rows for review.')}
-              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Extract PDF For Review</button></div>
-            </form>
-            <div id="pdfPreview"></div>
-          </section>
-          <section class="panel">
-            <h3>Store Statement Evidence</h3>
-            <form id="pdfUploadForm" class="form-grid">
-              ${fileField('Statement file', 'Statement File', 'application/pdf,.pdf,.xls,.xlsx,.csv,text/csv', 'PDF, Excel, or CSV bank statement up to 10 MB. Use CSV import above when you want automatic line loading.')}
-              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Store Statement File</button></div>
-            </form>
-          </section>
-          <section class="panel">
-            <h3>Manual Statement Entry</h3>
-            <form id="manualBankLineForm" class="form-grid">
-              ${selectField('Account', 'Account ID', data.accounts.map(accountOption))}
-              ${dateInputField('Statement Date', 'Statement Date', todayDisplay())}
-              ${inputField('Description', 'Description', '')}
-              ${inputField('Money In', 'Money In', '')}
-              ${inputField('Money Out', 'Money Out', '')}
-              ${inputField('Running Balance', 'Running Balance', '')}
-              ${inputField('Reference Number', 'Reference Number', '')}
-              ${selectField('Classification (optional)', 'Category ID', [{ value: '', label: 'Classify later' }].concat((state.finance.categories || []).map(function(category) {
-                return { value: category.categoryId, label: category.categoryType + ' - ' + category.categoryName };
-              })))}
-              ${selectField('Fund or project', 'Fund ID', [{ value: '', label: 'General / none' }].concat((state.finance.funds || []).map(fundOption)))}
-              ${inputField('Payer or payee', 'Counterparty', '')}
-              <div style="grid-column: 1 / -1;">${textAreaField('Notes', 'Notes', '')}</div>
-              <div style="grid-column: 1 / -1;"><button class="action" type="submit">Save Bank Line</button></div>
-            </form>
-          </section>
-          </details>
         `;
       }
 
@@ -2126,17 +2424,14 @@
         const accountId = event.target.querySelector('[name="Account ID"]').value;
         const file = event.target.querySelector('input[type="file"]').files[0];
         if (!file) {
-          alert('Choose a PDF, Excel, or CSV statement first.');
+          alert('Choose an Excel or CSV statement first.');
           return;
         }
-        if (state.statementObjectUrl) {
-          URL.revokeObjectURL(state.statementObjectUrl);
-          state.statementObjectUrl = '';
+        if (!/\.(xls|xlsx|csv)$/i.test(file.name)) {
+          alert('Please use an Excel (.xls or .xlsx) or CSV file.');
+          return;
         }
-        if (/\.pdf$/i.test(file.name)) {
-          state.statementObjectUrl = URL.createObjectURL(file);
-        }
-        showBusy('Reading and checking the bank statement...');
+        showBusy('Opening the bank statement...');
         readFileAsBase64(file, function(base64) {
           google.script.run
             .withSuccessHandler(function(preview) {
@@ -2170,42 +2465,28 @@
           return Number(row.moneyIn || 0) > 0 || Number(row.moneyOut || 0) > 0;
         });
         preview.rows = rows;
-        const originalPreview = preview.sourceFormat === 'PDF' && state.statementObjectUrl
-          ? `<section class="message" style="margin-top:12px;"><h3>Original PDF</h3><p>Chrome cannot display a PDF inside the restricted Google Apps Script frame. Open it in a separate tab and switch between the PDF and this review screen.</p><a class="action secondary" href="${escapeAttr(state.statementObjectUrl)}" target="_blank" rel="noopener noreferrer">Open Original PDF In New Tab</a></section>`
-          : '';
         container.innerHTML = `
           <hr>
-          <h3>Statement Review</h3>
-          <div class="message ${preview.balanceBreakCount ? 'warn' : ''}">
-            <p><strong>${escapeHtml(rows.length)} complete transaction rows</strong> found from ${escapeHtml(preview.sourceFormat || '')}. ${escapeHtml(preview.highConfidenceCount || 0)} passed the running-balance check.</p>
-            <p class="small">Green rows balance mathematically. Gold rows need a person to compare them with the original statement before ticking them.</p>
-            ${preview.duplicateFile ? '<p><strong>This exact file was imported before.</strong> Rows will be quarantined as possible duplicates unless the earlier import is investigated.</p>' : ''}
-          </div>
-          ${originalPreview}
-          <div class="panel" style="box-shadow:none; margin-top:12px;">
-            <div class="action-row">
-              <button class="action secondary" type="button" id="selectVerifiedRows">Select Verified Rows</button>
-              <button class="action secondary" type="button" id="selectCompleteRows">Select All Complete Rows</button>
-              <button class="action secondary" type="button" id="clearStatementRows">Clear Selection</button>
-            </div>
-            <div class="form-grid" style="margin-top:12px;">
-              <div>
-                <label for="bulkStatementCategory">Apply classification to selected matching rows</label>
-                <select id="bulkStatementCategory">
-                  <option value="">Choose classification</option>
-                  ${(state.finance.categories || []).map(function(category) {
-                    return `<option value="${escapeAttr(category.categoryId)}" data-category-type="${escapeAttr(category.categoryType)}">${escapeHtml(category.categoryType + ' — ' + category.categoryName)}</option>`;
-                  }).join('')}
-                </select>
-              </div>
-              <div style="align-self:end;"><button class="action secondary" type="button" id="applyBulkStatementCategory">Apply To Selected</button></div>
-            </div>
+          <h3>Review the statement</h3>
+          <div class="message">
+            <p><strong>${escapeHtml(rows.length)} bank item(s)</strong> found. Tick the rows to use, choose a classification, or use <strong>Split amount</strong> when one bank payment belongs to several classifications.</p>
+            <p class="muted small">You can send only a few rows now. Any unticked rows will stay on this screen and will also be saved under <strong>Saved Work</strong>, so you can send them later without uploading the statement again.</p>
+            ${preview.duplicateFile ? '<p><strong>This exact file was imported before.</strong> The app will hold possible duplicates for checking.</p>' : ''}
           </div>
           <form id="statementCommitForm">
-            <div class="statement-workbench">
-              ${rows.map(renderUnifiedStatementRow).join('') || '<p class="muted">No complete rows were found. Use the manual statement tool below.</p>'}
+            ${rows.length ? `<div class="statement-scroll-controls" aria-label="Statement table scrolling controls">
+              <button class="action secondary" type="button" data-scroll-statement="left">← Scroll left</button>
+              <span class="statement-scroll-hint muted">Swipe the table, or use these buttons to see every column.</span>
+              <button class="action secondary" type="button" data-scroll-statement="right">Scroll right →</button>
+            </div>` : ''}
+            <div class="statement-review-scroll" id="statementReviewScroller" tabindex="0" role="region" aria-label="Scrollable statement review table">
+              ${rows.length ? `<table class="statement-grid">
+                <colgroup><col style="width:38px"><col style="width:96px"><col style="width:190px"><col style="width:92px"><col style="width:92px"><col style="width:165px"><col style="width:150px"><col style="width:125px"><col style="width:142px"></colgroup>
+                <thead><tr><th class="include-cell"><input type="checkbox" id="toggleAllStatementRows" checked aria-label="Include all rows"></th><th>Date</th><th>Bank description</th><th>Money In</th><th>Money Out</th><th>Classification</th><th>Fund / Project</th><th>Member explanation</th><th>Evidence</th></tr></thead>
+                <tbody>${rows.map(renderUnifiedStatementRow).join('')}</tbody>
+              </table>` : '<p class="muted">No transaction rows were found. Use manual entry below.</p>'}
             </div>
-            ${rows.length ? `<div class="action-row"><button class="action" type="submit">Send Classified Rows To Publisher</button><button class="action secondary" type="button" id="saveStatementDraft">Save and Continue Later</button><button class="action secondary" type="button" id="saveReviewRows">Save Selected As Needs Review</button></div>` : ''}
+            ${rows.length ? `<p class="muted small">Evidence is optional. You may attach one PDF, JPG, or PNG receipt/proof to each row.</p><div class="action-row"><button class="action" type="submit">Send Selected Rows To Publisher</button><button class="action secondary" type="button" id="saveStatementDraft">Save For Later</button></div>` : ''}
           </form>
         `;
         bindUnifiedStatementControls(preview);
@@ -2214,28 +2495,47 @@
       function renderUnifiedStatementMapping(preview) {
         const options = [{ value: '', label: 'Not used' }].concat((preview.headers || []).map(function(header) { return { value: header, label: header }; }));
         const fields = [
-          { key: 'date', label: 'Date column' },
-          { key: 'description', label: 'Description column' },
-          { key: 'moneyIn', label: 'Money-in column' },
-          { key: 'moneyOut', label: 'Money-out column' },
-          { key: 'amount', label: 'Signed amount column' },
-          { key: 'balance', label: 'Running balance column' },
-          { key: 'reference', label: 'Reference column' }
+          { key: 'date', label: 'Transaction date (required)' },
+          { key: 'description', label: 'Bank description (required)' },
+          { key: 'moneyIn', label: 'Money In / Credit' },
+          { key: 'moneyOut', label: 'Money Out / Debit' },
+          { key: 'amount', label: 'Single amount column (only if used)' },
+          { key: 'balance', label: 'Running balance (optional)' },
+          { key: 'reference', label: 'Reference (optional)' }
         ];
+        const sampleRows = (preview.rawRows || []).slice(0, 5);
         document.getElementById('statementWorkbench').innerHTML = `
-          <hr><h3>Match the Bank Columns</h3>
-          <p class="muted">The bank used unfamiliar headings. Choose which column contains each item.</p>
+          <hr><h3>Confirm the bank columns</h3>
+          <p class="muted">We selected likely columns for you. Check the choices below, then continue. For statements with separate Debit and Credit columns, leave the single amount column as “Not used”.</p>
           <form id="unifiedMappingForm" class="form-grid">
             ${fields.map(function(field) {
               return selectField(field.label, field.key, options.map(function(option) {
                 return { value: option.value, label: option.label, selected: option.value === preview.suggestedMapping[field.key] };
               }));
             }).join('')}
-            <div style="grid-column:1/-1;"><button class="action" type="submit">Continue To Statement Review</button></div>
+            <div style="grid-column:1/-1;"><button class="action" type="submit">Use These Columns</button></div>
           </form>
+          <h4>Sample from the uploaded file</h4>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>${(preview.headers || []).map(function(header) { return `<th>${escapeHtml(header)}</th>`; }).join('')}</tr></thead>
+              <tbody>${sampleRows.map(function(row) {
+                return `<tr>${(preview.headers || []).map(function(header, index) { return `<td>${escapeHtml(row[index] || '')}</td>`; }).join('')}</tr>`;
+              }).join('')}</tbody>
+            </table>
+          </div>
         `;
         document.getElementById('unifiedMappingForm').addEventListener('submit', function(event) {
           event.preventDefault();
+          const mapping = readFormValues(event.target);
+          if (!mapping.date || !mapping.description) {
+            alert('Choose the transaction date and bank description columns.');
+            return;
+          }
+          if (!mapping.moneyIn && !mapping.moneyOut && !mapping.amount) {
+            alert('Choose a Money In, Money Out, or single amount column.');
+            return;
+          }
           showBusy('Applying the bank column choices...');
           google.script.run
             .withSuccessHandler(function(rows) {
@@ -2248,80 +2548,247 @@
               renderUnifiedStatementWorkbench(preview);
             })
             .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
-            .previewMappedBankStatement({ headers: preview.headers, rawRows: preview.rawRows, mapping: readFormValues(event.target) });
+            .previewMappedBankStatement({ headers: preview.headers, rawRows: preview.rawRows, mapping: mapping });
         });
       }
 
       function renderUnifiedStatementRow(row, index) {
         const type = Number(row.moneyIn || 0) > 0 ? 'Money In' : 'Money Out';
-        const verified = row.confidence === 'High';
         const selectedCategory = row.categoryId || row.suggestedCategoryId || '';
-        const selectedForUse = Object.prototype.hasOwnProperty.call(row, 'include') ? row.include : verified;
-        const categories = (state.finance.categories || []).filter(function(category) { return category.categoryType === type; });
+        const selectedForUse = Object.prototype.hasOwnProperty.call(row, 'include') ? row.include : true;
+        const splits = Array.isArray(row.splits) ? row.splits : [];
+        const bankAmount = Number(row.moneyIn || 0) > 0 ? Number(row.moneyIn || 0) : Number(row.moneyOut || 0);
         return `
-          <article class="statement-card ${verified ? 'verified' : ''}" data-workbench-row="${index}" data-transaction-type="${escapeAttr(type)}" data-confidence="${escapeAttr(row.confidence || 'Review')}">
-            <div class="statement-card-head">
-              <input type="checkbox" name="Include Row" ${selectedForUse ? 'checked' : ''} aria-label="Include row ${index + 1}">
-              <div><strong>${escapeHtml(type)}: ${formatMoney(type === 'Money In' ? row.moneyIn : row.moneyOut)}</strong><br><span class="small muted">Row ${escapeHtml(row.rowNumber || index + 1)} · Balance ${formatMoney(row.runningBalance || 0)}</span></div>
-              <span class="badge ${verified ? 'ok' : 'warn'}">${escapeHtml(verified ? 'Balance verified' : 'Check original')}</span>
-            </div>
-            ${row.reviewReason ? `<p class="message small">${escapeHtml(row.reviewReason)}</p>` : ''}
-            <div class="statement-fields">
-              <div>${inputField('Date', 'Statement Date', isoToDisplayDate(row.statementDate || ''))}</div>
-              <div>${selectField('Classification', 'Category ID', [{ value: '', label: 'Leave for later review' }].concat(categories.map(function(category) {
-                return { value: category.categoryId, label: category.categoryName, selected: category.categoryId === selectedCategory };
-              })))}</div>
-              <div class="statement-description">${textAreaField('Bank description', 'Description', row.description || '')}</div>
-              <div>${inputField('Money In', 'Money In', row.moneyIn || '')}</div>
-              <div>${inputField('Money Out', 'Money Out', row.moneyOut || '')}</div>
-              <div>${inputField('Running Balance', 'Running Balance', row.runningBalance || '')}</div>
-              <div>${inputField('Reference', 'Reference Number', row.referenceNumber || '')}</div>
-              <div>${inputField('Payer or payee', 'Counterparty', row.counterparty || '')}</div>
-              <div>${selectField('Fund or project', 'Fund ID', [{ value: '', label: 'General / none', selected: !row.fundId }].concat((state.finance.funds || []).map(function(fund) {
-                return { value: fund.fundId, label: fund.fundName, selected: fund.fundId === row.fundId };
-              })))}</div>
+          <tr data-workbench-row="${index}" data-confidence="${escapeAttr(row.confidence || 'Review')}" data-evidence-document-id="${escapeAttr(row.evidenceDocumentId || '')}" data-transaction-type="${escapeAttr(type)}" data-bank-amount="${escapeAttr(bankAmount)}" data-use-split="${splits.length ? '1' : '0'}">
+            <td class="include-cell"><input type="checkbox" name="Include Row" ${selectedForUse ? 'checked' : ''} aria-label="Include row ${index + 1}"></td>
+            <td><input name="Statement Date" value="${escapeAttr(isoToDisplayDate(row.statementDate || ''))}" inputmode="numeric" aria-label="Date for row ${index + 1}"></td>
+            <td class="description-cell"><textarea name="Description" aria-label="Description for row ${index + 1}">${escapeHtml(row.description || '')}</textarea></td>
+            <td class="amount-cell"><input name="Money In" value="${escapeAttr(row.moneyIn || '')}" inputmode="decimal" aria-label="Money In for row ${index + 1}"></td>
+            <td class="amount-cell"><input name="Money Out" value="${escapeAttr(row.moneyOut || '')}" inputmode="decimal" aria-label="Money Out for row ${index + 1}"></td>
+            <td class="category-cell"><select name="Category ID" data-statement-category-type="${escapeAttr(type)}" aria-label="Classification for row ${index + 1}" ${splits.length ? 'disabled' : ''}>${renderStatementCategoryOptions(type, selectedCategory)}</select><span class="small muted">${escapeHtml(type)}</span><button class="action secondary" type="button" data-toggle-statement-split="${index}" style="margin-top:6px;">${splits.length ? 'Cancel split' : 'Split amount'}</button></td>
+            <td><select name="Fund ID" aria-label="Fund or project for row ${index + 1}" ${splits.length ? 'disabled' : ''}>${renderFundOptions(row.fundId || '')}</select><span class="small muted">Optional</span></td>
+            <td><textarea name="Notes" placeholder="Optional plain-language explanation" aria-label="Member explanation for row ${index + 1}">${escapeHtml(row.notes || '')}</textarea></td>
+            <td class="evidence-cell"><input type="file" name="Evidence File" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" aria-label="Evidence for row ${index + 1}"><span class="small muted" data-evidence-status>${row.evidenceDocumentId ? 'Evidence already attached' : 'Optional receipt/proof'}</span>
+              <input type="hidden" name="Running Balance" value="${escapeAttr(row.runningBalance || '')}">
+              <input type="hidden" name="Reference Number" value="${escapeAttr(row.referenceNumber || '')}">
+              <input type="hidden" name="Counterparty" value="${escapeAttr(row.counterparty || '')}">
               <input type="hidden" name="Source Text" value="${escapeAttr(row.sourceText || '')}">
               <input type="hidden" name="Row Number" value="${escapeAttr(row.rowNumber || index + 1)}">
               <input type="hidden" name="Review Reason" value="${escapeAttr(row.reviewReason || '')}">
               <input type="hidden" name="Balance Check" value="${escapeAttr(row.balanceCheck || '')}">
-            </div>
-          </article>
+            </td>
+          </tr>
+          <tr class="statement-split-row" data-statement-split-for="${index}" ${splits.length ? '' : 'hidden'}>
+            <td colspan="9">
+              <div class="statement-split-editor">
+                <strong>Split <span data-statement-split-total>${formatMoney(bankAmount)}</span> across classifications</strong>
+                <p class="muted small">Enter each part. The parts must add up exactly to the bank amount.</p>
+                <div class="statement-split-list" data-statement-split-list>${splits.map(function(split, splitIndex) { return renderStatementSplitLine(type, split, splitIndex); }).join('')}</div>
+                <p class="message small" data-statement-split-remaining>Remaining: ${formatMoney(bankAmount)}</p>
+                <button class="action secondary" type="button" data-add-statement-split="${index}">Add another classification</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+
+      function renderStatementCategoryOptions(type, selectedCategory) {
+        const categories = (state.finance.categories || []).filter(function(category) { return category.categoryType === type; });
+        return `<option value="">Choose classification</option>` + categories.map(function(category) {
+          return `<option value="${escapeAttr(category.categoryId)}" ${category.categoryId === selectedCategory ? 'selected' : ''}>${escapeHtml(category.categoryName)}</option>`;
+        }).join('') + '<option value="__create__">+ Create new classification</option>';
+      }
+
+      function renderStatementSplitLine(type, split, splitIndex) {
+        split = split || {};
+        const amount = split.Amount || split.amount || '';
+        const categoryId = split['Category ID'] || split.categoryId || '';
+        const fundId = split['Fund ID'] || split.fundId || '';
+        return `
+          <div class="statement-split-line" data-statement-split-line>
+            <div><label>Amount</label><input name="Split Amount" value="${escapeAttr(amount)}" inputmode="decimal"></div>
+            <div><label>Classification</label><select name="Split Category" data-statement-category-type="${escapeAttr(type)}">${renderStatementCategoryOptions(type, categoryId)}</select></div>
+            <div><label>Fund / Project</label><select name="Split Fund">${renderFundOptions(fundId)}</select></div>
+            <button class="action danger" type="button" data-remove-statement-split aria-label="Remove split ${splitIndex + 1}">Remove</button>
+          </div>
         `;
       }
 
       function bindUnifiedStatementControls(preview) {
-        function setSelection(mode) {
-          document.querySelectorAll('[data-workbench-row]').forEach(function(card) {
-            card.querySelector('[name="Include Row"]').checked = mode === 'all' || (mode === 'verified' && card.dataset.confidence === 'High');
-          });
+        const toggleAll = document.getElementById('toggleAllStatementRows');
+        if (toggleAll) {
+          toggleAll.onchange = function() {
+            document.querySelectorAll('[data-workbench-row] [name="Include Row"]').forEach(function(input) {
+              input.checked = toggleAll.checked;
+            });
+          };
         }
-        document.getElementById('selectVerifiedRows').onclick = function() { setSelection('verified'); };
-        document.getElementById('selectCompleteRows').onclick = function() {
-          if (confirm('Select every complete row only after comparing gold rows with the original statement. Continue?')) { setSelection('all'); }
-        };
-        document.getElementById('clearStatementRows').onclick = function() { setSelection('none'); };
-        document.getElementById('applyBulkStatementCategory').onclick = function() {
-          const select = document.getElementById('bulkStatementCategory');
-          const option = select.options[select.selectedIndex];
-          if (!select.value) { alert('Choose a classification first.'); return; }
-          document.querySelectorAll('[data-workbench-row]').forEach(function(card) {
-            if (card.querySelector('[name="Include Row"]').checked && card.dataset.transactionType === option.dataset.categoryType) {
-              card.querySelector('[name="Category ID"]').value = select.value;
-            }
-          });
-        };
+        document.querySelectorAll('[data-workbench-row] [name="Evidence File"]').forEach(function(input) {
+          input.onchange = function() {
+            const row = input.closest('[data-workbench-row]');
+            row.dataset.evidenceDocumentId = '';
+            row.querySelector('[data-evidence-status]').textContent = input.files[0] ? input.files[0].name : 'Optional receipt/proof';
+          };
+        });
+        bindStatementReviewScroller();
+        bindStatementSplitControls();
+        bindStatementCategoryCreation(document.getElementById('statementCommitForm'));
         document.getElementById('statementCommitForm').addEventListener('submit', function(event) {
           event.preventDefault();
           commitUnifiedStatement(preview, false);
         });
         document.getElementById('saveStatementDraft').onclick = function() { saveStatementDraft(preview); };
-        document.getElementById('saveReviewRows').onclick = function() { commitUnifiedStatement(preview, true); };
+      }
+
+      function bindStatementReviewScroller() {
+        const scroller = document.getElementById('statementReviewScroller');
+        if (!scroller) { return; }
+        document.querySelectorAll('[data-scroll-statement]').forEach(function(button) {
+          button.onclick = function() {
+            const direction = button.dataset.scrollStatement === 'left' ? -1 : 1;
+            scroller.scrollBy({ left: direction * Math.max(280, scroller.clientWidth * 0.75), behavior: 'smooth' });
+          };
+        });
+      }
+
+      function bindStatementSplitControls() {
+        document.querySelectorAll('[data-toggle-statement-split]').forEach(function(button) {
+          button.onclick = function() {
+            const row = document.querySelector('[data-workbench-row="' + button.dataset.toggleStatementSplit + '"]');
+            const splitRow = document.querySelector('[data-statement-split-for="' + button.dataset.toggleStatementSplit + '"]');
+            const categorySelect = row.querySelector('[name="Category ID"]');
+            const fundSelect = row.querySelector('[name="Fund ID"]');
+            const opening = row.dataset.useSplit !== '1';
+            row.dataset.useSplit = opening ? '1' : '0';
+            splitRow.hidden = !opening;
+            categorySelect.disabled = opening;
+            fundSelect.disabled = opening;
+            button.textContent = opening ? 'Cancel split' : 'Split amount';
+            if (opening && !splitRow.querySelector('[data-statement-split-line]')) {
+              const type = row.dataset.transactionType;
+              const selectedCategory = categorySelect.value;
+              const selectedFund = fundSelect.value;
+              splitRow.querySelector('[data-statement-split-list]').innerHTML = renderStatementSplitLine(type, { categoryId: selectedCategory, fundId: selectedFund }, 0) + renderStatementSplitLine(type, {}, 1);
+              bindStatementSplitLineControls(row, splitRow);
+              bindStatementCategoryCreation(splitRow);
+            }
+            updateStatementSplitRemaining(row, splitRow);
+          };
+        });
+        document.querySelectorAll('[data-add-statement-split]').forEach(function(button) {
+          button.onclick = function() {
+            const row = document.querySelector('[data-workbench-row="' + button.dataset.addStatementSplit + '"]');
+            const splitRow = document.querySelector('[data-statement-split-for="' + button.dataset.addStatementSplit + '"]');
+            const list = splitRow.querySelector('[data-statement-split-list]');
+            list.insertAdjacentHTML('beforeend', renderStatementSplitLine(row.dataset.transactionType, {}, list.children.length));
+            bindStatementSplitLineControls(row, splitRow);
+            bindStatementCategoryCreation(splitRow);
+            updateStatementSplitRemaining(row, splitRow);
+          };
+        });
+        document.querySelectorAll('[data-workbench-row]').forEach(function(row) {
+          const splitRow = document.querySelector('[data-statement-split-for="' + row.dataset.workbenchRow + '"]');
+          row.querySelectorAll('[name="Money In"], [name="Money Out"]').forEach(function(input) {
+            input.oninput = function() { updateStatementSplitRemaining(row, splitRow); };
+          });
+          bindStatementSplitLineControls(row, splitRow);
+          updateStatementSplitRemaining(row, splitRow);
+        });
+      }
+
+      function bindStatementSplitLineControls(row, splitRow) {
+        if (!row || !splitRow) { return; }
+        splitRow.querySelectorAll('[data-remove-statement-split]').forEach(function(button) {
+          button.onclick = function() {
+            if (splitRow.querySelectorAll('[data-statement-split-line]').length <= 2) {
+              alert('A split needs at least two classifications. Use Cancel split to return to one classification.');
+              return;
+            }
+            button.closest('[data-statement-split-line]').remove();
+            updateStatementSplitRemaining(row, splitRow);
+          };
+        });
+        splitRow.querySelectorAll('[name="Split Amount"]').forEach(function(input) {
+          input.oninput = function() { updateStatementSplitRemaining(row, splitRow); };
+        });
+      }
+
+      function updateStatementSplitRemaining(row, splitRow) {
+        if (!row || !splitRow) { return; }
+        const bankAmount = readStatementBankAmount(row);
+        row.dataset.bankAmount = bankAmount;
+        const allocated = Array.prototype.reduce.call(splitRow.querySelectorAll('[name="Split Amount"]'), function(total, input) {
+          return total + (Number(String(input.value || '0').replace(/,/g, '')) || 0);
+        }, 0);
+        const remaining = Math.round((bankAmount - allocated) * 100) / 100;
+        const output = splitRow.querySelector('[data-statement-split-remaining]');
+        if (!output) { return; }
+        const totalLabel = splitRow.querySelector('[data-statement-split-total]');
+        if (totalLabel) { totalLabel.textContent = formatMoney(bankAmount); }
+        output.textContent = Math.abs(remaining) <= 0.01 ? 'Balanced: the split equals ' + formatMoney(bankAmount) : 'Remaining: ' + formatMoney(remaining);
+        output.classList.toggle('split-balanced', Math.abs(remaining) <= 0.01);
+      }
+
+      function readStatementBankAmount(row) {
+        const moneyIn = Number(String(row.querySelector('[name="Money In"]').value || '0').replace(/,/g, '')) || 0;
+        const moneyOut = Number(String(row.querySelector('[name="Money Out"]').value || '0').replace(/,/g, '')) || 0;
+        return moneyIn > 0 ? moneyIn : moneyOut;
+      }
+
+      function readStatementSplits(row) {
+        if (row.dataset.useSplit !== '1') { return []; }
+        const splitRow = document.querySelector('[data-statement-split-for="' + row.dataset.workbenchRow + '"]');
+        return Array.prototype.map.call(splitRow.querySelectorAll('[data-statement-split-line]'), function(line) {
+          return {
+            Amount: line.querySelector('[name="Split Amount"]').value,
+            'Category ID': line.querySelector('[name="Split Category"]').value,
+            'Fund ID': line.querySelector('[name="Split Fund"]').value
+          };
+        });
+      }
+
+      function bindStatementCategoryCreation(container) {
+        if (!container) { return; }
+        container.querySelectorAll('select[data-statement-category-type]').forEach(function(select) {
+          select.onfocus = function() { select.dataset.previousValue = select.value; };
+          select.onchange = function() {
+            if (select.value !== '__create__') { return; }
+            const previousValue = select.dataset.previousValue || '';
+            const categoryName = prompt('Name the new ' + select.dataset.statementCategoryType + ' classification:', '');
+            if (!categoryName || !categoryName.trim()) {
+              select.value = previousValue;
+              return;
+            }
+            showBusy('Creating the new classification...');
+            google.script.run
+              .withSuccessHandler(function(result) {
+                hideBusy();
+                if (!(state.finance.categories || []).some(function(category) { return category.categoryId === result.categoryId; })) {
+                  state.finance.categories.push({ categoryId: result.categoryId, categoryType: result.categoryType, categoryName: result.categoryName });
+                }
+                document.querySelectorAll('select[data-statement-category-type]').forEach(function(categorySelect) {
+                  const currentValue = categorySelect === select ? result.categoryId : categorySelect.value;
+                  categorySelect.innerHTML = renderStatementCategoryOptions(categorySelect.dataset.statementCategoryType, currentValue);
+                  categorySelect.value = currentValue;
+                });
+                bindStatementCategoryCreation(document.getElementById('statementCommitForm'));
+                showMessage(result.created ? 'Classification created.' : 'That classification already existed and has been selected.');
+              })
+              .withFailureHandler(function(error) {
+                hideBusy();
+                select.value = previousValue;
+                alert(error.message || String(error));
+              })
+              .addStatementClassification({ categoryType: select.dataset.statementCategoryType, categoryName: categoryName.trim() });
+          };
+        });
       }
 
       function readUnifiedStatementRows(forceReview, includeAll) {
-        return Array.prototype.map.call(document.querySelectorAll('[data-workbench-row]'), function(card) {
+        return Array.prototype.map.call(document.querySelectorAll('[data-workbench-row]'), function(card, clientIndex) {
           const values = readFormValues(card);
           return {
+            clientIndex: clientIndex,
             include: card.querySelector('[name="Include Row"]').checked,
             statementDate: displayToIsoDate(values['Statement Date']) || values['Statement Date'],
             description: values.Description,
@@ -2330,8 +2797,11 @@
             runningBalance: values['Running Balance'],
             referenceNumber: values['Reference Number'],
             counterparty: values.Counterparty,
-            categoryId: forceReview ? '' : values['Category ID'],
+            categoryId: forceReview || card.dataset.useSplit === '1' ? '' : values['Category ID'],
             fundId: values['Fund ID'],
+            splits: forceReview ? [] : readStatementSplits(card),
+            notes: values.Notes,
+            evidenceDocumentId: card.dataset.evidenceDocumentId || '',
             sourceText: values['Source Text'],
             rowNumber: values['Row Number'],
             confidence: card.dataset.confidence,
@@ -2343,16 +2813,90 @@
       }
 
       function commitUnifiedStatement(preview, forceReview) {
-        const rows = readUnifiedStatementRows(forceReview);
-        if (!rows.length) { alert('Select at least one reviewed row.'); return; }
-        showBusy(forceReview ? 'Saving rows for later review...' : 'Saving classifications and preparing Publisher records...');
+        const allRows = readUnifiedStatementRows(forceReview, true);
+        const rows = allRows.filter(function(row) { return row.include; });
+        const remainingRows = allRows.filter(function(row) { return !row.include; }).map(function(row) {
+          row.include = true;
+          return row;
+        });
+        if (!rows.length) { alert('Tick at least one row to send.'); return; }
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+          const row = rows[rowIndex];
+          if (row.splits && row.splits.length) {
+            if (row.splits.length < 2) {
+              alert('Row ' + (rowIndex + 1) + ': a split needs at least two classifications.');
+              return;
+            }
+            let splitTotal = 0;
+            for (let splitIndex = 0; splitIndex < row.splits.length; splitIndex++) {
+              const split = row.splits[splitIndex];
+              const splitAmount = Number(String(split.Amount || '0').replace(/,/g, '')) || 0;
+              if (splitAmount <= 0 || !split['Category ID'] || split['Category ID'] === '__create__') {
+                alert('Row ' + (rowIndex + 1) + ': enter an amount and classification for every split line.');
+                return;
+              }
+              splitTotal += splitAmount;
+            }
+            const moneyIn = Number(String(row.moneyIn || '0').replace(/,/g, '')) || 0;
+            const bankAmount = Number(String((moneyIn > 0 ? row.moneyIn : row.moneyOut) || '0').replace(/,/g, '')) || 0;
+            if (Math.abs(splitTotal - bankAmount) > 0.01) {
+              alert('Row ' + (rowIndex + 1) + ': split amounts must equal ' + formatMoney(bankAmount) + '.');
+              return;
+            }
+          } else if (!row.categoryId || row.categoryId === '__create__') {
+            alert('Choose a classification for every selected row.');
+            return;
+          }
+        }
+        showBusy('Uploading any evidence and saving the statement...');
+        uploadStatementRowEvidence(rows, function(completedRows) {
+          google.script.run
+            .withSuccessHandler(function(result) {
+              const sentMessage = 'Statement saved: ' + result.transactionsPrepared + ' item(s) sent to the Publisher' + (result.duplicateCount ? ', with ' + result.duplicateCount + ' possible duplicate(s) held for checking.' : '.');
+              if (remainingRows.length) {
+                saveRemainingStatementRows(preview, remainingRows, sentMessage);
+                return;
+              }
+              hideBusy();
+              refreshBankStatements(sentMessage);
+            })
+            .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+            .commitStatementWorkbench({
+              accountId: preview.accountId,
+              fileName: preview.fileName,
+              fileId: preview.fileId,
+              documentId: preview.documentId,
+              fileHash: preview.fileHash,
+              sourceFormat: preview.sourceFormat,
+              parserProfile: preview.parserProfile,
+              draftId: remainingRows.length ? '' : (preview.draftId || ''),
+              rows: completedRows
+            });
+        });
+      }
+
+      function saveRemainingStatementRows(preview, remainingRows, sentMessage) {
+        showBusy('Saving the rows that were not sent...');
         google.script.run
           .withSuccessHandler(function(result) {
             hideBusy();
-            refreshBankStatements('Statement saved: ' + result.transactionsPrepared + ' classified record(s), ' + result.reviewCount + ' needing review, and ' + result.duplicateCount + ' duplicate(s) quarantined.');
+            preview.draftId = result.draftId;
+            preview.rows = remainingRows;
+            state.statementPreview = preview;
+            renderUnifiedStatementWorkbench(preview);
+            showMessage(sentMessage + ' ' + remainingRows.length + ' unsent row(s) remain below and were saved under Saved Work.');
+            const workbench = document.getElementById('statementWorkbench');
+            if (workbench) { workbench.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
           })
-          .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
-          .commitStatementWorkbench({
+          .withFailureHandler(function(error) {
+            hideBusy();
+            preview.rows = remainingRows;
+            state.statementPreview = preview;
+            renderUnifiedStatementWorkbench(preview);
+            showMessage(sentMessage + ' The unsent rows remain below, but automatic Saved Work backup failed. Click Save For Later before leaving this page.');
+            alert('The selected rows were sent, but the remaining rows could not be backed up automatically. They are still shown below. Click Save For Later before leaving this page.\n\n' + (error.message || String(error)));
+          })
+          .saveStatementReviewDraft({
             accountId: preview.accountId,
             fileName: preview.fileName,
             fileId: preview.fileId,
@@ -2360,9 +2904,58 @@
             fileHash: preview.fileHash,
             sourceFormat: preview.sourceFormat,
             parserProfile: preview.parserProfile,
+            duplicateFile: preview.duplicateFile,
             draftId: preview.draftId || '',
-            rows: rows
+            rows: remainingRows
           });
+      }
+
+      function uploadStatementRowEvidence(rows, done) {
+        const pending = rows.filter(function(row) {
+          const element = document.querySelector('[data-workbench-row="' + row.clientIndex + '"]');
+          const input = element && element.querySelector('[name="Evidence File"]');
+          row.evidenceFile = input && input.files ? input.files[0] : null;
+          row.evidenceDocumentId = element ? (element.dataset.evidenceDocumentId || '') : '';
+          return row.evidenceFile && !row.evidenceDocumentId;
+        });
+        const invalid = pending.filter(function(row) {
+          return row.evidenceFile.size > 5 * 1024 * 1024 || !/\.(pdf|jpe?g|png)$/i.test(row.evidenceFile.name);
+        })[0];
+        if (invalid) {
+          hideBusy();
+          alert('Evidence must be a PDF, JPG, or PNG file no larger than 5 MB.');
+          return;
+        }
+        function uploadNext(position) {
+          if (position >= pending.length) {
+            rows.forEach(function(row) { delete row.evidenceFile; });
+            done(rows);
+            return;
+          }
+          const row = pending[position];
+          const file = row.evidenceFile;
+          readFileAsBase64(file, function(base64) {
+            google.script.run
+              .withSuccessHandler(function(result) {
+                row.evidenceDocumentId = result.documentId;
+                const element = document.querySelector('[data-workbench-row="' + row.clientIndex + '"]');
+                if (element) {
+                  element.dataset.evidenceDocumentId = result.documentId;
+                  element.querySelector('[data-evidence-status]').textContent = 'Attached: ' + file.name;
+                }
+                uploadNext(position + 1);
+              })
+              .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+              .uploadFinanceDocument({ fileName: file.name, mimeType: file.type || evidenceMimeType(file.name), base64: base64, visibility: 'Finance Only' });
+          });
+        }
+        uploadNext(0);
+      }
+
+      function evidenceMimeType(fileName) {
+        if (/\.pdf$/i.test(fileName)) { return 'application/pdf'; }
+        if (/\.png$/i.test(fileName)) { return 'image/png'; }
+        return 'image/jpeg';
       }
 
       function saveStatementDraft(preview) {
@@ -2716,14 +3309,44 @@
 
       function submitManualBankLine(event) {
         event.preventDefault();
-        google.script.run
-          .withSuccessHandler(function(result) {
-            refreshBankStatements('Bank line saved: ' + result.bankLineId + (result.duplicateWarning ? ' with duplicate warning.' : '.'));
-          })
-          .withFailureHandler(function(error) {
-            alert(error.message || String(error));
-          })
-          .addManualBankStatementLine(readFormValues(event.target));
+        const form = event.target;
+        const record = readFormValues(form);
+        const evidenceInput = form.querySelector('[name="Evidence File"]');
+        const evidence = evidenceInput && evidenceInput.files ? evidenceInput.files[0] : null;
+        if (!record['Category ID']) {
+          alert('Choose a classification.');
+          return;
+        }
+        if (evidence && (evidence.size > 5 * 1024 * 1024 || !/\.(pdf|jpe?g|png)$/i.test(evidence.name))) {
+          alert('Evidence must be a PDF, JPG, or PNG file no larger than 5 MB.');
+          return;
+        }
+        showBusy(evidence ? 'Uploading evidence and saving the item...' : 'Saving the bank item...');
+        function saveRecord() {
+          google.script.run
+            .withSuccessHandler(function(result) {
+              hideBusy();
+              refreshBankStatements('Bank item sent to the Publisher' + (result.duplicateWarning ? ', but held as a possible duplicate.' : '.'));
+            })
+            .withFailureHandler(function(error) {
+              hideBusy();
+              alert(error.message || String(error));
+            })
+            .addManualBankStatementLine(record);
+        }
+        if (!evidence) {
+          saveRecord();
+          return;
+        }
+        readFileAsBase64(evidence, function(base64) {
+          google.script.run
+            .withSuccessHandler(function(result) {
+              record['Document ID'] = result.documentId;
+              saveRecord();
+            })
+            .withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); })
+            .uploadFinanceDocument({ fileName: evidence.name, mimeType: evidence.type || evidenceMimeType(evidence.name), base64: base64, visibility: 'Finance Only' });
+        });
       }
 
       function renderBankImports(imports) {
@@ -3265,6 +3888,7 @@
       }
 
       function renderReports() {
+        state.currentReport = null;
         document.getElementById('app').innerHTML = `
           <section class="panel">
             <h2>Reports</h2>
@@ -3283,10 +3907,12 @@
       }
 
       function drawReports(stage6) {
+        const yearStart = isoToDisplayDate(new Date().getFullYear() + '-01-01');
         document.getElementById('app').innerHTML = `
           <section class="panel">
             <h2>Reports</h2>
-            <p class="muted">Simple financial summaries for meetings, email, and WhatsApp sharing.</p>
+            <p class="muted">Generate professional nonprofit financial statements from published records for any period.</p>
+            <p class="report-disclosure small"><strong>Accounting basis:</strong> day-to-day records remain cash-derived. A Publisher-approved report pack can add disclosed receivables, unpaid expenses, deferred income, and prepaid expenses for the selected period. This improves accrual-style reporting but is not a full accrual general ledger.</p>
           </section>
           <section class="grid">
             ${metricCard('Money In This Month', formatMoney(stage6.reportSummaries.monthly.moneyIn))}
@@ -3294,68 +3920,335 @@
             ${metricCard('Money In This Year', formatMoney(stage6.reportSummaries.annual.moneyIn))}
             ${metricCard('Money Out This Year', formatMoney(stage6.reportSummaries.annual.moneyOut))}
           </section>
-          <section class="panel">
-            <h3>Generate Report</h3>
+          ${renderReportPackWorkspace(stage6)}
+          <section class="panel" id="reportControls">
+            <h3>Generate Financial Statement</h3>
             <form id="reportForm" class="form-grid">
               ${selectField('Report type', 'Report Type', [
-                { value: 'Receipts and Payments Statement', label: 'Receipts and Payments Statement' },
-                { value: 'Statement of Funds Available', label: 'Statement of Funds Available' },
-                { value: 'Monthly Financial Summary', label: 'Monthly Financial Summary' },
-                { value: 'Quarterly Financial Summary', label: 'Quarterly Financial Summary' },
-                { value: 'Annual Financial Summary', label: 'Annual Financial Summary' },
+                { value: 'Complete Financial Statements', label: 'Complete Financial Statements' },
+                { value: 'Statement of Financial Activities', label: 'Statement of Financial Activities' },
+                { value: 'Statement of Financial Position', label: 'Statement of Financial Position' },
+                { value: 'Statement of Cash Flows', label: 'Statement of Cash Flows' },
+                { value: 'Fund / Project Statement', label: 'Fund / Project Statement' },
                 { value: 'Transaction Register', label: 'Transaction Register' }
               ])}
-              ${dateInputField('Start Date', 'Start Date', todayDisplay())}
+              ${dateInputField('Start Date', 'Start Date', yearStart)}
               ${dateInputField('End Date', 'End Date', todayDisplay())}
-              <p class="muted small" style="grid-column: 1 / -1;">For Statement of Funds Available, use End Date as the "as at" date.</p>
+              <div id="reportFundField" hidden>
+                ${selectField('Fund or specialized project', 'Fund ID', [{ value: '', label: 'Choose fund or project' }, { value: 'GENERAL', label: 'General / Unallocated Activity' }].concat((stage6.funds || []).map(fundOption)))}
+              </div>
+              <p class="muted small" style="grid-column: 1 / -1;">The Statement of Financial Position uses the End Date as its “as at” date. All reports include published transactions only.</p>
               <div class="action-row" style="grid-column: 1 / -1;">
                 <button class="action" type="submit">View Report</button>
                 <button class="action secondary" type="button" id="exportReportButton">Export CSV</button>
+                <button class="action secondary" type="button" id="printReportButton">Print / Save as PDF</button>
+                <button class="action secondary" type="button" id="copyReportSummaryButton">Copy Meeting Summary</button>
               </div>
             </form>
           </section>
           <section id="reportOutput"></section>
         `;
 
-        document.getElementById('reportForm').addEventListener('submit', function(event) {
+        const reportForm = document.getElementById('reportForm');
+        const reportTypeSelect = reportForm.querySelector('[name="Report Type"]');
+        function updateReportFields() {
+          document.getElementById('reportFundField').hidden = reportTypeSelect.value !== 'Fund / Project Statement';
+        }
+        reportTypeSelect.addEventListener('change', updateReportFields);
+        updateReportFields();
+
+        reportForm.addEventListener('submit', function(event) {
           event.preventDefault();
           const values = readFormValues(event.target);
+          if (values['Report Type'] === 'Fund / Project Statement' && !values['Fund ID']) {
+            alert('Choose a fund or specialized project.');
+            return;
+          }
+          showBusy('Preparing the financial statement...');
           google.script.run
-            .withSuccessHandler(drawReportOutput)
+            .withSuccessHandler(function(report) { hideBusy(); drawReportOutput(report); })
             .withFailureHandler(function(error) {
+              hideBusy();
               alert(error.message || String(error));
             })
-            .getReportData(values['Report Type'], values['Start Date'], values['End Date']);
+            .getReportData(values['Report Type'], values['Start Date'], values['End Date'], values['Fund ID']);
         });
 
         document.getElementById('exportReportButton').addEventListener('click', function() {
           const values = readFormValues(document.getElementById('reportForm'));
+          if (state.currentReport && state.currentReport.reportPack) {
+            showBusy('Exporting the displayed report pack...');
+            google.script.run.withSuccessHandler(function(csv) {
+              hideBusy();
+              downloadCsv(csv, makeReportFileName(state.currentReport.reportType + '-' + state.currentReport.reportPack.reportPackId));
+              showMessage('Report-pack CSV exported.');
+            }).withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); }).exportReportPackCsv(state.currentReport.reportPack.reportPackId);
+            return;
+          }
+          if (values['Report Type'] === 'Fund / Project Statement' && !values['Fund ID']) {
+            alert('Choose a fund or specialized project.');
+            return;
+          }
+          showBusy('Preparing the CSV export...');
           google.script.run
             .withSuccessHandler(function(csv) {
+              hideBusy();
               downloadCsv(csv, makeReportFileName(values['Report Type']));
               showMessage('Report CSV exported.');
             })
             .withFailureHandler(function(error) {
+              hideBusy();
               alert(error.message || String(error));
             })
-            .exportReportCsv(values['Report Type'], values['Start Date'], values['End Date']);
+            .exportReportCsv(values['Report Type'], values['Start Date'], values['End Date'], values['Fund ID']);
+        });
+
+        document.getElementById('printReportButton').addEventListener('click', function() {
+          if (!document.querySelector('#reportOutput .financial-report')) {
+            alert('View a report first, then use Print / Save as PDF.');
+            return;
+          }
+          window.print();
+        });
+        document.getElementById('copyReportSummaryButton').addEventListener('click', function() {
+          if (!state.currentReport) {
+            alert('View a report first, then copy its meeting summary.');
+            return;
+          }
+          copyTextForSharing(makeReportMeetingSummary(state.currentReport));
+        });
+        bindReportPackControls(stage6);
+      }
+
+      function renderReportPackWorkspace(stage6) {
+        const packs = stage6.reportPacks || [];
+        const published = packs.filter(function(pack) { return pack.status === 'Published'; });
+        const working = packs.filter(function(pack) { return pack.status !== 'Published'; });
+        return `
+          ${stage6.canPrepareReportPacks ? `<section class="panel" id="reportPackEditor">
+            <h3>Prepare Notes and Period-End Items</h3>
+            <p class="muted">Most notes are generated automatically. Use this short guided form only for information that cannot be learned from bank transactions. Leaving a box blank means “Nothing to report.”</p>
+            <form id="reportPackForm" class="form-grid">
+              <input type="hidden" name="Report Pack ID" value="">
+              ${selectField('Report package', 'Pack Report Type', [
+                { value: 'Complete Financial Statements', label: 'Complete Financial Statements' },
+                { value: 'Fund / Project Statement', label: 'Fund / Project Statement' }
+              ])}
+              ${dateInputField('Period Start', 'Pack Period Start', isoToDisplayDate(new Date().getFullYear() + '-01-01'))}
+              ${dateInputField('Period End', 'Pack Period End', todayDisplay())}
+              <div id="reportPackFundField" hidden>${selectField('Fund or specialized project', 'Pack Fund ID', [{ value: '', label: 'Choose fund or project' }, { value: 'GENERAL', label: 'General / Unallocated Activity' }].concat((stage6.funds || []).map(fundOption)))}</div>
+              <details style="grid-column:1/-1;" open>
+                <summary><strong>Guided notes for members</strong></summary>
+                <div class="form-grid" style="margin-top:12px;">
+                  <div style="grid-column:1/-1;">${textAreaField('Main activities or achievements during the period', 'Period Highlights', '')}</div>
+                  <div style="grid-column:1/-1;">${textAreaField('Significant or unusual income and spending', 'Significant Items', '')}</div>
+                  <div style="grid-column:1/-1;">${textAreaField('Important events after the reporting date', 'Subsequent Events', '')}</div>
+                  <div style="grid-column:1/-1;">${textAreaField('Anything else members should know', 'Other Information', '')}</div>
+                  <label class="check-item" style="grid-column:1/-1;"><input type="checkbox" name="Include Transaction Explanations" value="Yes"><span>Include bank-row member explanations in this report. Preview carefully because older notes may contain internal wording.</span></label>
+                </div>
+              </details>
+              <details style="grid-column:1/-1;">
+                <summary><strong>Period-end items (optional)</strong></summary>
+                <p class="muted small" style="margin-top:8px;">Enter only amounts that exist at the End Date. These are non-cash reporting adjustments and require Publisher approval.</p>
+                <div class="request-list">
+                  ${renderReportAdjustmentInput('Income Earned but Not Received', 'Money owed to NACO\'94 for income already earned')}
+                  ${renderReportAdjustmentInput('Expense Incurred but Not Paid', 'Bills or expenses NACO\'94 owes but has not paid')}
+                  ${renderReportAdjustmentInput('Income Received in Advance', 'Money received now for a future period or event')}
+                  ${renderReportAdjustmentInput('Expense Paid in Advance', 'Payments made now for a future period')}
+                </div>
+              </details>
+              <div class="action-row" style="grid-column:1/-1;">
+                <button class="action secondary" type="submit">Save Draft</button>
+                <button class="action" type="button" id="sendReportPackButton">Send to Publisher</button>
+                <button class="action secondary" type="button" id="clearReportPackButton">Start New</button>
+              </div>
+            </form>
+          </section>` : ''}
+          ${working.length ? `<section class="panel"><h3>Report Packs in Progress</h3><div class="request-list">${working.map(function(pack) { return renderReportPackCard(pack, stage6); }).join('')}</div></section>` : ''}
+          <section class="panel">
+            <h3>Published Report Archive</h3>
+            <p class="muted">These reports are frozen Publisher-approved snapshots. Later corrections create a new report version instead of silently changing this one.</p>
+            <div class="request-list">${published.length ? published.map(function(pack) { return renderReportPackCard(pack, stage6); }).join('') : '<p class="muted">No report pack has been published yet.</p>'}</div>
+          </section>
+        `;
+      }
+
+      function renderReportAdjustmentInput(type, helpText) {
+        return `<div class="request-card" data-report-adjustment="${escapeAttr(type)}"><strong>${escapeHtml(type)}</strong><p class="small muted">${escapeHtml(helpText)}</p><div class="form-grid"><div><label>Amount</label><input name="Adjustment Amount" inputmode="decimal" placeholder="0.00"></div><div><label>Short explanation or classification</label><input name="Adjustment Description" placeholder="Nothing to report"></div></div></div>`;
+      }
+
+      function renderReportPackCard(pack, stage6) {
+        const roles = state.bootstrap.user.roles || [];
+        const isAdmin = roles.indexOf('System Administrator') !== -1;
+        const isOwner = String(pack.preparedBy || '').toLowerCase() === String(state.bootstrap.user.email || '').toLowerCase();
+        const canEdit = stage6.canPrepareReportPacks && (isOwner || isAdmin) && (pack.status === 'Draft' || pack.status === 'Sent Back');
+        const canReview = stage6.canPublishReportPacks && pack.status === 'Ready to Publish' && !isOwner;
+        return `
+          <div class="request-card">
+            <strong>${escapeHtml(pack.reportPackId)} · ${escapeHtml(pack.reportType)}</strong>
+            <p class="small">${escapeHtml(pack.periodStart)} to ${escapeHtml(pack.periodEnd)}${pack.fundId ? ' · Fund ' + escapeHtml(pack.fundId) : ''}</p>
+            <p><span class="badge ${pack.status === 'Published' ? 'ok' : (pack.status === 'Sent Back' ? 'warn' : '')}">${escapeHtml(pack.status)}</span></p>
+            <p class="small muted">Prepared by ${escapeHtml(pack.preparedBy)}${pack.reviewedBy ? ' · Reviewed by ' + escapeHtml(pack.reviewedBy) : ''}</p>
+            ${pack.publisherNote ? `<p class="message small"><strong>Publisher note:</strong> ${escapeHtml(pack.publisherNote)}</p>` : ''}
+            <div class="action-row">
+              ${pack.status === 'Published' ? `<button class="action secondary" type="button" data-open-published-report="${escapeAttr(pack.reportPackId)}">Open Published Report</button>` : `<button class="action secondary" type="button" data-preview-report-pack="${escapeAttr(pack.reportPackId)}">Preview</button>`}
+              ${canEdit ? `<button class="action secondary" type="button" data-edit-report-pack="${escapeAttr(pack.reportPackId)}">Edit</button>` : ''}
+              ${canReview ? `<button class="action" type="button" data-review-report-pack="${escapeAttr(pack.reportPackId)}" data-report-decision="Published">Publish</button><button class="action danger" type="button" data-review-report-pack="${escapeAttr(pack.reportPackId)}" data-report-decision="Sent Back">Send Back</button>` : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      function bindReportPackControls(stage6) {
+        const form = document.getElementById('reportPackForm');
+        if (form) {
+          const typeSelect = form.querySelector('[name="Pack Report Type"]');
+          const fundField = document.getElementById('reportPackFundField');
+          function updateFundField() { fundField.hidden = typeSelect.value !== 'Fund / Project Statement'; }
+          typeSelect.addEventListener('change', updateFundField);
+          updateFundField();
+          form.addEventListener('submit', function(event) { event.preventDefault(); saveReportPackFromUi(false); });
+          document.getElementById('sendReportPackButton').onclick = function() { saveReportPackFromUi(true); };
+          document.getElementById('clearReportPackButton').onclick = clearReportPackForm;
+        }
+        document.querySelectorAll('[data-edit-report-pack]').forEach(function(button) {
+          button.onclick = function() {
+            showBusy('Opening the guided report notes...');
+            google.script.run.withSuccessHandler(function(pack) {
+              hideBusy();
+              populateReportPackForm(pack);
+            }).withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); }).getReportPackForEditing(button.dataset.editReportPack);
+          };
+        });
+        document.querySelectorAll('[data-preview-report-pack]').forEach(function(button) {
+          button.onclick = function() { openReportPackFromServer('previewReportPack', button.dataset.previewReportPack); };
+        });
+        document.querySelectorAll('[data-open-published-report]').forEach(function(button) {
+          button.onclick = function() { openReportPackFromServer('getPublishedReportPack', button.dataset.openPublishedReport); };
+        });
+        document.querySelectorAll('[data-review-report-pack]').forEach(function(button) {
+          button.onclick = function() {
+            const decision = button.dataset.reportDecision;
+            const note = prompt(decision === 'Published' ? 'Optional Publisher note' : 'Explain what needs to be changed', '') || '';
+            if (decision === 'Sent Back' && !note.trim()) {
+              alert('Enter a short reason before sending the report back.');
+              return;
+            }
+            if (!confirm(decision === 'Published' ? 'Publish and freeze this report pack for members?' : 'Send this report pack back to the Finance Officer?')) { return; }
+            showBusy(decision === 'Published' ? 'Publishing the report pack...' : 'Sending the report pack back...');
+            google.script.run.withSuccessHandler(function() { hideBusy(); showMessage('Report pack ' + decision.toLowerCase() + '.'); renderReports(); }).withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); }).reviewReportPack(button.dataset.reviewReportPack, decision, note);
+          };
         });
       }
 
+      function readReportPackForm() {
+        const form = document.getElementById('reportPackForm');
+        const values = readFormValues(form);
+        return {
+          reportPackId: values['Report Pack ID'],
+          reportType: values['Pack Report Type'],
+          periodStart: values['Pack Period Start'],
+          periodEnd: values['Pack Period End'],
+          fundId: values['Pack Fund ID'],
+          narrative: {
+            periodHighlights: values['Period Highlights'],
+            significantItems: values['Significant Items'],
+            subsequentEvents: values['Subsequent Events'],
+            otherInformation: values['Other Information'],
+            includeTransactionExplanations: Boolean(form.querySelector('[name="Include Transaction Explanations"]').checked)
+          },
+          adjustments: Array.prototype.map.call(form.querySelectorAll('[data-report-adjustment]'), function(card) {
+            return { type: card.dataset.reportAdjustment, amount: card.querySelector('[name="Adjustment Amount"]').value, description: card.querySelector('[name="Adjustment Description"]').value };
+          })
+        };
+      }
+
+      function saveReportPackFromUi(submitForPublishing) {
+        const payload = readReportPackForm();
+        if (payload.reportType === 'Fund / Project Statement' && !payload.fundId) {
+          alert('Choose a fund or project.');
+          return;
+        }
+        payload.submitForPublishing = submitForPublishing;
+        if (submitForPublishing && !confirm('Send this report pack to a separate Publisher for checking?')) { return; }
+        showBusy(submitForPublishing ? 'Sending the report pack to the Publisher...' : 'Saving the report pack draft...');
+        google.script.run.withSuccessHandler(function(result) {
+          hideBusy();
+          showMessage('Report pack ' + result.reportPackId + ' saved as ' + result.status + '.');
+          renderReports();
+        }).withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); }).saveReportPack(payload);
+      }
+
+      function populateReportPackForm(pack) {
+        const form = document.getElementById('reportPackForm');
+        if (!form) { return; }
+        form.querySelector('[name="Report Pack ID"]').value = pack.reportPackId;
+        form.querySelector('[name="Pack Report Type"]').value = pack.reportType;
+        form.querySelector('[name="Pack Period Start"]').value = isoToDisplayDate(pack.periodStartIso);
+        form.querySelector('[name="Pack Period End"]').value = isoToDisplayDate(pack.periodEndIso);
+        form.querySelector('[name="Pack Fund ID"]').value = pack.fundId || '';
+        form.querySelector('[name="Period Highlights"]').value = pack.narrative.periodHighlights || '';
+        form.querySelector('[name="Significant Items"]').value = pack.narrative.significantItems || '';
+        form.querySelector('[name="Subsequent Events"]').value = pack.narrative.subsequentEvents || '';
+        form.querySelector('[name="Other Information"]').value = pack.narrative.otherInformation || '';
+        form.querySelector('[name="Include Transaction Explanations"]').checked = Boolean(pack.narrative.includeTransactionExplanations);
+        form.querySelectorAll('[data-report-adjustment]').forEach(function(card) {
+          const item = (pack.adjustments || []).filter(function(adjustment) { return adjustment.type === card.dataset.reportAdjustment; })[0] || {};
+          card.querySelector('[name="Adjustment Amount"]').value = item.amount || '';
+          card.querySelector('[name="Adjustment Description"]').value = item.description || '';
+        });
+        form.querySelector('[name="Pack Report Type"]').dispatchEvent(new Event('change'));
+        document.getElementById('reportPackEditor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      function clearReportPackForm() {
+        const form = document.getElementById('reportPackForm');
+        form.reset();
+        form.querySelector('[name="Report Pack ID"]').value = '';
+        form.querySelector('[name="Pack Report Type"]').dispatchEvent(new Event('change'));
+      }
+
+      function openReportPackFromServer(functionName, reportPackId) {
+        showBusy('Opening the report pack...');
+        const runner = google.script.run.withSuccessHandler(function(report) {
+          hideBusy();
+          drawReportOutput(report);
+          document.getElementById('reportOutput').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }).withFailureHandler(function(error) { hideBusy(); alert(error.message || String(error)); });
+        if (functionName === 'getPublishedReportPack') {
+          runner.getPublishedReportPack(reportPackId);
+        } else {
+          runner.previewReportPack(reportPackId);
+        }
+      }
+
       function drawReportOutput(report) {
-        if (report.reportType === 'Income and Expenditure Statement' || report.reportType === 'Receipts and Payments Statement') {
-          drawIncomeExpenditureOutput(report);
+        state.currentReport = report;
+        if (report.reportType === 'Complete Financial Statements') {
+          drawCompleteFinancialStatements(report);
+          return;
+        }
+        if (report.reportType === 'Statement of Financial Activities' || report.reportType === 'Income and Expenditure Statement' || report.reportType === 'Receipts and Payments Statement') {
+          document.getElementById('reportOutput').innerHTML = `<div class="financial-report">${renderActivitiesStatement(report)}</div>`;
           return;
         }
         if (report.reportType === 'Statement of Financial Position' || report.reportType === 'Statement of Funds Available') {
-          drawFinancialPositionOutput(report);
+          document.getElementById('reportOutput').innerHTML = `<div class="financial-report">${renderFinancialPositionStatement(report)}</div>`;
+          return;
+        }
+        if (report.reportType === 'Statement of Cash Flows') {
+          document.getElementById('reportOutput').innerHTML = `<div class="financial-report">${renderCashFlowStatement(report)}</div>`;
+          return;
+        }
+        if (report.reportType === 'Fund / Project Statement') {
+          document.getElementById('reportOutput').innerHTML = `<div class="financial-report">${renderFundProjectStatement(report)}</div>`;
           return;
         }
 
         document.getElementById('reportOutput').innerHTML = `
-          <section class="panel">
-            <h3>${escapeHtml(report.reportType)}</h3>
-            <p class="muted">${escapeHtml(report.periodLabel)} | Generated ${escapeHtml(formatShortDateTime(report.generatedAt))}</p>
+          <div class="financial-report">
+          <section class="panel financial-statement">
+            ${renderFinancialReportHeading(report)}
             <div class="grid">
               ${metricCard('Money In', formatMoney(report.summary.moneyIn))}
               ${metricCard('Money Out', formatMoney(report.summary.moneyOut))}
@@ -3364,73 +4257,207 @@
             </div>
             ${renderTransactionTable(report.transactions, false)}
           </section>
-        `;
-      }
-
-      function drawIncomeExpenditureOutput(report) {
-        document.getElementById('reportOutput').innerHTML = `
-          <section class="panel">
-            <h3>${escapeHtml(report.reportType)}</h3>
-            <p class="muted">${escapeHtml(report.periodLabel)} | Generated ${escapeHtml(formatShortDateTime(report.generatedAt))}</p>
-            <div class="grid">
-              ${metricCard('Total Receipts', formatMoney(report.summary.totalIncome))}
-              ${metricCard('Total Payments', formatMoney(report.summary.totalExpenditure))}
-              ${metricCard('Net Receipts / Payments', formatMoney(report.summary.surplusDeficit))}
-            </div>
-          </section>
-          <section class="panel">
-            <h3>Receipts</h3>
-            ${renderAmountRows(report.incomeRows, 'No income records for this period.')}
-          </section>
-          <section class="panel">
-            <h3>Payments</h3>
-            ${renderAmountRows(report.expenditureRows, 'No expenditure records for this period.')}
-          </section>
-        `;
-      }
-
-      function drawFinancialPositionOutput(report) {
-        document.getElementById('reportOutput').innerHTML = `
-          <section class="panel">
-            <h3>${escapeHtml(report.reportType)}</h3>
-            <p class="muted">${escapeHtml(report.periodLabel)} | Generated ${escapeHtml(formatShortDateTime(report.generatedAt))}</p>
-            ${report.currencyWarning ? `<p class="message">${escapeHtml(report.currencyWarning)}</p>` : ''}
-            <div class="grid">
-              ${metricCard('Bank Balance', report.mixedCurrencies ? 'See currency totals' : formatMoney(report.summary.bankBalance))}
-              ${metricCard('Cash at Hand', report.mixedCurrencies ? 'See currency totals' : formatMoney(report.summary.cashAtHand))}
-              ${metricCard('Total Funds Available', report.mixedCurrencies ? 'See currency totals' : formatMoney(report.summary.totalFundsAvailable))}
-              ${metricCard('Represented Funds', report.mixedCurrencies ? 'Not combined' : formatMoney(report.summary.representedFundsTotal))}
-            </div>
-          </section>
-          <section class="panel">
-            <h3>Funds Available</h3>
-            ${renderAmountRows(report.accountRows, 'No active accounts found.')}
-          </section>
-          ${report.mixedCurrencies ? `<section class="panel"><h3>Totals By Currency</h3>${renderAmountRows(report.currencyRows, 'No currency totals found.')}</section>` : ''}
-          <section class="panel">
-            <h3>Represented By</h3>
-            ${renderAmountRows(report.fundRows, 'No fund/project balances found.')}
-          </section>
-        `;
-      }
-
-      function renderAmountRows(rows, emptyText) {
-        if (!rows || !rows.length) {
-          return `<p class="muted">${escapeHtml(emptyText)}</p>`;
-        }
-
-        return `
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Description</th><th>Amount</th></tr></thead>
-              <tbody>
-                ${rows.map(function(row) {
-                  return `<tr><td>${escapeHtml(row.name)}${row.currency ? `<br><span class="small muted">${escapeHtml(row.currency)}</span>` : ''}</td><td>${formatMoney(row.amount)}</td></tr>`;
-                }).join('')}
-              </tbody>
-            </table>
+          ${renderReportNotes(report.notes)}
           </div>
         `;
+      }
+
+      function drawCompleteFinancialStatements(report) {
+        document.getElementById('reportOutput').innerHTML = `
+          <div class="financial-report">
+            <section class="panel financial-report-cover">
+              <h2>NACO'94 Alumni Association</h2>
+              <h3>Complete Financial Statements</h3>
+              <p>${escapeHtml(report.periodLabel)}</p>
+              <p class="muted small">Generated ${escapeHtml(formatShortDateTime(report.generatedAt))} from published NACO'94 Open Ledger records</p>
+              ${report.reportPack ? `<p><span class="badge ${report.reportPack.status === 'Published' ? 'ok' : 'warn'}">${escapeHtml(report.reportPack.reportPackId)} · ${escapeHtml(report.reportPack.status)}</span></p>` : ''}
+            </section>
+            ${renderActivitiesStatement(report.activities)}
+            ${renderFinancialPositionStatement(report.position)}
+            ${renderCashFlowStatement(report.cashFlow)}
+          </div>
+        `;
+      }
+
+      function renderFinancialReportHeading(report) {
+        return `
+          <div class="financial-report-cover">
+            <h2>NACO'94 Alumni Association</h2>
+            <h3>${escapeHtml(report.reportType)}</h3>
+            <p>${escapeHtml(report.periodLabel)}</p>
+            <p class="muted small">Generated ${escapeHtml(formatShortDateTime(report.generatedAt))} · Published records only</p>
+            ${report.reportPack ? `<p><span class="badge ${report.reportPack.status === 'Published' ? 'ok' : 'warn'}">${escapeHtml(report.reportPack.reportPackId)} · ${escapeHtml(report.reportPack.status)}</span></p>` : ''}
+          </div>
+        `;
+      }
+
+      function renderActivitiesStatement(report) {
+        return `
+          <section class="panel financial-statement">
+            ${renderFinancialReportHeading(report)}
+            <div class="table-wrap"><table>
+              <thead><tr><th>Description</th><th>Note</th><th>Amount</th></tr></thead>
+              <tbody>
+                <tr class="statement-section-row"><td colspan="3">Income</td></tr>
+                ${renderStatementAmountRows(report.incomeRows, 3)}
+                <tr class="statement-subtotal-row"><td>Total Income</td><td>3</td><td>${formatStatementMoney(report.summary.totalIncome)}</td></tr>
+                <tr class="statement-section-row"><td colspan="3">Expenditure</td></tr>
+                ${renderStatementAmountRows(report.expenditureRows, 4)}
+                <tr class="statement-subtotal-row"><td>Total Expenditure</td><td>4</td><td>${formatStatementMoney(report.summary.totalExpenditure)}</td></tr>
+                <tr class="statement-total-row"><td>Surplus / (Deficit) for the Period</td><td></td><td>${formatStatementMoney(report.summary.surplusDeficit)}</td></tr>
+              </tbody>
+            </table></div>
+          </section>
+          ${renderReportNotes(report.notes)}
+        `;
+      }
+
+      function renderFinancialPositionStatement(report) {
+        const fundsDifference = Number(report.summary.netAssets || 0) - Number(report.summary.representedFundsTotal || 0);
+        return `
+          <section class="panel financial-statement">
+            ${renderFinancialReportHeading(report)}
+            ${report.currencyWarning ? `<p class="message">${escapeHtml(report.currencyWarning)}</p>` : ''}
+            <div class="table-wrap"><table>
+              <thead><tr><th>Description</th><th>Note</th><th>Amount</th></tr></thead>
+              <tbody>
+                <tr class="statement-section-row"><td colspan="3">Assets</td></tr>
+                ${renderStatementAmountRows(report.accountRows, 2)}
+                <tr><td>Receivables / Debtors</td><td>3</td><td>${formatStatementMoney(report.summary.receivables)}</td></tr>
+                <tr><td>Other Assets</td><td>3</td><td>${formatStatementMoney(report.summary.otherAssets)}</td></tr>
+                <tr class="statement-total-row"><td>Total Assets</td><td></td><td>${formatStatementMoney(report.summary.totalAssets)}</td></tr>
+                <tr class="statement-section-row"><td colspan="3">Liabilities</td></tr>
+                <tr><td>Payables / Creditors</td><td>4</td><td>${formatStatementMoney(report.summary.payables)}</td></tr>
+                <tr><td>Deferred Income</td><td>4</td><td>${formatStatementMoney(report.summary.deferredIncome)}</td></tr>
+                <tr><td>Other Liabilities</td><td>4</td><td>${formatStatementMoney(report.summary.otherLiabilities)}</td></tr>
+                <tr class="statement-subtotal-row"><td>Total Liabilities</td><td></td><td>${formatStatementMoney(report.summary.totalLiabilities)}</td></tr>
+                <tr class="statement-total-row"><td>Net Assets</td><td></td><td>${formatStatementMoney(report.summary.netAssets)}</td></tr>
+                <tr class="statement-section-row"><td colspan="3">Accumulated and Project Funds</td></tr>
+                ${renderStatementAmountRows(report.fundRows, 5)}
+                <tr class="statement-total-row"><td>Total Accumulated and Project Funds</td><td></td><td>${formatStatementMoney(report.summary.representedFundsTotal)}</td></tr>
+              </tbody>
+            </table></div>
+            ${Math.abs(fundsDifference) > 0.01 ? `<p class="message error"><strong>Balance check:</strong> funds differ from net assets by ${escapeHtml(formatStatementMoney(fundsDifference))}. Ask the Finance Officer to review fund assignments and opening balances before publishing this statement.</p>` : '<p class="small muted">Balance check passed: accumulated and project funds equal net assets.</p>'}
+          </section>
+          ${renderReportNotes(report.notes)}
+        `;
+      }
+
+      function renderCashFlowStatement(report) {
+        return `
+          <section class="panel financial-statement">
+            ${renderFinancialReportHeading(report)}
+            <div class="table-wrap"><table>
+              <thead><tr><th>Description</th><th>Note</th><th>Amount</th></tr></thead>
+              <tbody>
+                <tr class="statement-section-row"><td colspan="3">Cash Flows from Operating Activities</td></tr>
+                <tr><td>Cash receipts</td><td>2</td><td>${formatStatementMoney(report.summary.cashReceipts)}</td></tr>
+                <tr><td>Cash payments</td><td>3</td><td>${formatStatementMoney(-Number(report.summary.cashPayments || 0))}</td></tr>
+                <tr class="statement-subtotal-row"><td>Net Cash from Operating Activities</td><td></td><td>${formatStatementMoney(report.summary.netOperatingCashFlow)}</td></tr>
+                <tr><td>Net Cash from Investing Activities</td><td>4</td><td>${formatStatementMoney(report.summary.netInvestingCashFlow)}</td></tr>
+                <tr><td>Net Cash from Financing Activities</td><td>4</td><td>${formatStatementMoney(report.summary.netFinancingCashFlow)}</td></tr>
+                <tr class="statement-subtotal-row"><td>Net Increase / (Decrease) in Cash</td><td></td><td>${formatStatementMoney(report.summary.netIncreaseInCash)}</td></tr>
+                <tr><td>Cash and Cash Equivalents at Start</td><td></td><td>${formatStatementMoney(report.summary.openingCash)}</td></tr>
+                <tr class="statement-total-row"><td>Cash and Cash Equivalents at End</td><td></td><td>${formatStatementMoney(report.summary.closingCash)}</td></tr>
+              </tbody>
+            </table></div>
+            ${Math.abs(Number(report.summary.reconciliationDifference || 0)) > 0.01 ? `<p class="message"><strong>Cash-flow reconciliation difference:</strong> ${escapeHtml(formatStatementMoney(report.summary.reconciliationDifference))}. This may reflect opening-balance or currency differences.</p>` : '<p class="small muted">Cash-flow reconciliation passed.</p>'}
+          </section>
+          ${renderReportNotes(report.notes)}
+        `;
+      }
+
+      function renderFundProjectStatement(report) {
+        return `
+          <section class="panel financial-statement">
+            ${renderFinancialReportHeading(report)}
+            <p class="report-disclosure"><strong>${escapeHtml(report.fund.name)}</strong><br><span class="small">${escapeHtml(report.fund.type)}</span></p>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Description</th><th>Note</th><th>Amount</th></tr></thead>
+              <tbody>
+                <tr><td>Opening Fund Balance</td><td></td><td>${formatStatementMoney(report.summary.openingBalance)}</td></tr>
+                <tr class="statement-section-row"><td colspan="3">Income / Receipts</td></tr>
+                ${renderStatementAmountRows(report.incomeRows, 3)}
+                <tr class="statement-subtotal-row"><td>Total Income / Receipts</td><td></td><td>${formatStatementMoney(report.summary.totalIncome)}</td></tr>
+                <tr class="statement-section-row"><td colspan="3">Expenditure / Payments</td></tr>
+                ${renderStatementAmountRows(report.expenditureRows, 4)}
+                <tr class="statement-subtotal-row"><td>Total Expenditure / Payments</td><td></td><td>${formatStatementMoney(report.summary.totalExpenditure)}</td></tr>
+                <tr><td>Surplus / (Deficit) for the Period</td><td></td><td>${formatStatementMoney(report.summary.surplusDeficit)}</td></tr>
+                <tr class="statement-total-row"><td>Closing Fund Balance</td><td></td><td>${formatStatementMoney(report.summary.closingBalance)}</td></tr>
+              </tbody>
+            </table></div>
+          </section>
+          <section class="panel financial-statement">
+            <h3>Published Project Transaction Detail</h3>
+            ${renderProjectTransactionRows(report.transactions)}
+          </section>
+          ${renderReportNotes(report.notes)}
+        `;
+      }
+
+      function renderStatementAmountRows(rows, noteNumber) {
+        if (!rows || !rows.length) {
+          return `<tr><td class="muted">No published records</td><td>${escapeHtml(noteNumber || '')}</td><td>${formatStatementMoney(0)}</td></tr>`;
+        }
+        return rows.map(function(row) {
+          return `<tr><td>${escapeHtml(row.name)}${row.currency ? `<br><span class="small muted">${escapeHtml(row.currency)}</span>` : ''}</td><td>${escapeHtml(noteNumber || '')}</td><td>${formatStatementMoney(row.amount)}</td></tr>`;
+        }).join('');
+      }
+
+      function renderReportNotes(notes) {
+        if (!notes || !notes.length) { return ''; }
+        return `
+          <section class="panel financial-statement">
+            <h3>Notes to the Financial Statements</h3>
+            ${notes.map(function(note) {
+              return `<article class="report-note"><h4>Note ${escapeHtml(note.number)} · ${escapeHtml(note.title)}</h4>${(note.paragraphs || []).map(function(paragraph) { return `<p>${escapeHtml(paragraph)}</p>`; }).join('')}${note.rows && note.rows.length ? `<div class="table-wrap"><table><thead><tr><th>Detail</th><th>Amount</th></tr></thead><tbody>${note.rows.map(function(row) { return `<tr><td>${escapeHtml(row.name)}</td><td>${formatStatementMoney(row.amount)}</td></tr>`; }).join('')}</tbody></table></div>` : ''}${note.details && note.details.length ? `<details><summary><strong>View ${escapeHtml(note.details.length)} supporting transaction explanation(s)</strong></summary><div class="table-wrap"><table><thead><tr><th>Date</th><th>Classification</th><th>Description</th><th>Officer explanation</th><th>Amount</th><th>Evidence</th></tr></thead><tbody>${note.details.map(function(detail) { return `<tr><td>${escapeHtml(detail.date)}</td><td>${escapeHtml(detail.category)}</td><td>${escapeHtml(detail.description)}</td><td>${escapeHtml(detail.explanation)}</td><td>${formatStatementMoney(detail.amount)}</td><td>${escapeHtml(detail.evidenceHeld ? 'Held by Finance' : 'Not attached')}</td></tr>`; }).join('')}</tbody></table></div></details>` : ''}</article>`;
+            }).join('')}
+          </section>
+        `;
+      }
+
+      function renderProjectTransactionRows(transactions) {
+        if (!transactions || !transactions.length) {
+          return '<p class="muted">No published transactions were assigned to this fund/project for the selected period.</p>';
+        }
+        return `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Classification</th><th>Description</th><th>Amount</th></tr></thead><tbody>${transactions.map(function(transaction) {
+          return `<tr><td>${escapeHtml(transaction.date)}</td><td>${escapeHtml(transaction.transactionType)}</td><td>${escapeHtml(transaction.categoryName)}</td><td>${escapeHtml(transaction.description)}</td><td>${formatStatementMoney(transaction.amount)}</td></tr>`;
+        }).join('')}</tbody></table></div>`;
+      }
+
+      function formatStatementMoney(value) {
+        const amount = Number(value || 0);
+        const formatted = Math.abs(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return amount < 0 ? '(' + formatted + ')' : formatted;
+      }
+
+      function makeReportMeetingSummary(report) {
+        const lines = ["NACO'94 " + report.reportType, report.periodLabel];
+        if (report.reportType === 'Complete Financial Statements') {
+          lines.push('Income: ' + formatStatementMoney(report.activities.summary.totalIncome));
+          lines.push('Expenditure: ' + formatStatementMoney(report.activities.summary.totalExpenditure));
+          lines.push('Surplus/(Deficit): ' + formatStatementMoney(report.activities.summary.surplusDeficit));
+          lines.push('Net Assets: ' + formatStatementMoney(report.position.summary.netAssets));
+          lines.push('Closing Cash: ' + formatStatementMoney(report.cashFlow.summary.closingCash));
+        } else if (report.reportType === 'Fund / Project Statement') {
+          lines.push('Project: ' + report.fund.name);
+          lines.push('Income: ' + formatStatementMoney(report.summary.totalIncome));
+          lines.push('Expenditure: ' + formatStatementMoney(report.summary.totalExpenditure));
+          lines.push('Closing Balance: ' + formatStatementMoney(report.summary.closingBalance));
+        } else if (report.summary) {
+          Object.keys(report.summary).slice(0, 5).forEach(function(key) { lines.push(key + ': ' + formatStatementMoney(report.summary[key])); });
+        }
+        if (report.reportPack) { lines.push('Report pack: ' + report.reportPack.reportPackId + ' (' + report.reportPack.status + ')'); }
+        lines.push('Generated from published NACO\'94 Open Ledger records.');
+        return lines.join('\n');
+      }
+
+      function copyTextForSharing(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function() { showMessage('Meeting summary copied.'); }).catch(function() { prompt('Copy this summary:', text); });
+          return;
+        }
+        prompt('Copy this summary:', text);
       }
 
       function downloadCsv(csv, fileName) {

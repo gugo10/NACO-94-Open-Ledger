@@ -14,8 +14,8 @@ var APP_CONFIG = {
   ]
 };
 
-var DATA_SCHEMA_VERSION = '8.0';
-var APP_VERSION = '8.1.0';
+var DATA_SCHEMA_VERSION = '9.0';
+var APP_VERSION = '9.1.0';
 
 var ROLES = {
   MEMBER: 'Member',
@@ -48,6 +48,7 @@ var SHEET_DEFINITIONS = [
   { name: 'Transaction Matches', headers: ['Match ID', 'Bank Line ID', 'Transaction ID', 'Match Status', 'Matched By', 'Matched At', 'Notes'] },
   { name: 'Reconciliations', headers: ['Reconciliation ID', 'Account ID', 'Period Start', 'Period End', 'Opening Balance', 'Money In', 'Money Out', 'Expected Closing Balance', 'Statement Closing Balance', 'Difference', 'Matched Items', 'Unmatched Bank Lines', 'Unmatched Ledger Transactions', 'Status', 'Prepared By', 'Approved By', 'Date Completed', 'Document ID', 'Created At', 'Updated At', 'Review Notes', 'Exception Approved'] },
   { name: 'Cash Counts', headers: ['Cash Count ID', 'Account ID', 'Count Date', 'Expected Cash Balance', 'Actual Cash Counted', 'Difference', 'Explanation', 'Document ID', 'Counted By', 'Reviewed By', 'Status', 'Created At', 'Updated At', 'Review Notes'] },
+  { name: 'Report Packs', headers: ['Report Pack ID', 'Report Type', 'Period Start', 'Period End', 'Fund ID', 'Status', 'Prepared By', 'Prepared At', 'Reviewed By', 'Reviewed At', 'Publisher Note', 'Narrative JSON', 'Adjustments JSON', 'Snapshot File ID', 'Created At', 'Updated At'] },
   { name: 'Documents', headers: ['Document ID', 'File ID', 'File Name', 'Document Type', 'Visibility', 'Related Record Type', 'Related Record ID', 'Uploaded By', 'Uploaded At', 'Notes'] },
   { name: 'Audit Log', headers: ['Audit ID', 'Date Time', 'User Email', 'Action', 'Record Type', 'Record ID', 'Previous Value JSON', 'New Value JSON', 'Reason'] },
   { name: 'Settings', headers: ['Setting Key', 'Setting Value', 'Notes', 'Updated At', 'Updated By'] }
