@@ -1,4 +1,12 @@
 README.md
+AGENTS.md
 tests/**
+scripts/**
+.github/**
 .git/**
 .gitignore
+.claspignore
+.clasp.json
+*.pdf
+*-layout.txt
+simple-statement-ledger/**

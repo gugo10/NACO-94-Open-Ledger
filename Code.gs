@@ -1,5 +1,5 @@
 /**
- * NACO'94 Open Ledger - Stage 1 web entry points.
+ * NACO'94 Bank Ledger - web entry points.
  */
 
 function doGet() {
@@ -10,11 +10,10 @@ function doGet() {
   return template
     .evaluate()
     .setTitle(APP_CONFIG.APP_NAME)
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
-function include(filename) {
+function include_(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
@@ -27,18 +26,22 @@ function getAppBootstrap() {
     user: user,
     navigation: getVisibleNavigation(user.roles),
     configured: isAppConfigured(),
-    stage: 'Stage 7 - Finalisation'
+    stage: 'Stage 8 - Bank-first controls',
+    appVersion: APP_VERSION,
+    schemaVersion: isAppConfigured() ? (getSettingValue_('DATA_SCHEMA_VERSION') || 'Legacy - upgrade required') : DATA_SCHEMA_VERSION,
+    memberSignInAvailable: isAppConfigured(),
+    verifiedMemberSession: Boolean(getVerifiedSessionEmail_())
   };
 }
 
 function getStage1Status() {
-  requireAnyRole([ROLES.SYSTEM_ADMIN, ROLES.FINANCE_OFFICER, ROLES.PUBLISHER, ROLES.REVIEWER, ROLES.MEMBERSHIP_ADMIN, ROLES.MEMBER]);
+  requireAnyRole([ROLES.SYSTEM_ADMIN]);
 
   return {
     appName: APP_CONFIG.APP_NAME,
     configured: isAppConfigured(),
-    dataSpreadsheetId: getSettingValue('DATA_SPREADSHEET_ID'),
-    rootFolderId: getSettingValue('ROOT_FOLDER_ID'),
+    dataSpreadsheetId: getSettingValue_('DATA_SPREADSHEET_ID'),
+    rootFolderId: getSettingValue_('ROOT_FOLDER_ID'),
     sectionsReady: APP_CONFIG.NAVIGATION.length,
     sheetTabsReady: SHEET_DEFINITIONS.length
   };

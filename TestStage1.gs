@@ -1,4 +1,5 @@
 function runStage1Tests() {
+  requireScriptOwnerExecution_();
   var results = [
     testNormalizeEmail_(),
     testSplitRoles_(),
@@ -16,6 +17,7 @@ function runStage1Tests() {
     testValidateRequired_(),
     testNormalizeRolesForStorage_(),
     testSuggestCsvMapping_(),
+    testStatementMappingSkipsUndatedTotals_(),
     testMakeBankLineKey_(),
     testDaysBetween_(),
     testSharesWord_(),
@@ -35,7 +37,30 @@ function runStage1Tests() {
     testMapImportRow_(),
     testCleanImportedMemberRecord_(),
     testBuildIncomeExpenditureCsvRows_(),
-    testBuildFinancialPositionCsvRows_()
+    testBuildFinancialPositionCsvRows_(),
+    testBuildCashFlowCsvRows_(),
+    testAppendReportNotesCsvRows_(),
+    testCleanReportAdjustments_(),
+    testSummarizeReportAdjustments_(),
+    testApplyReportAdjustmentsToActivities_(),
+    testExtractTransactionNote_(),
+    testCleanBankLineNoteForReport_(),
+    testParsePdfStatementLineWithDebitCreditBalance_(),
+    testParsePdfStatementLineWithSignedAmount_(),
+    testParseCombinedPdfStatementLines_(),
+    testParsePolarisCreditStatementLine_(),
+    testParsePolarisDebitStatementLine_(),
+    testParseBankStatementChoosesProfile_(),
+    testGenericParserAcceptsMonthNameDate_(),
+    testStatementBalanceChainPass_(),
+    testStatementBalanceChainBreak_(),
+    testDerivedBalanceIncludesTransfers_(),
+    testTransactionSummaryExcludesTransfers_(),
+    testExplicitSourceBankLineId_(),
+    testBankDescriptionCategorySuggestion_(),
+    testPdfSignatureAllowsLeadingWhitespace_(),
+    testSafeSheetValue_(),
+    testFinanceDocumentSignatureRejectsFake_()
   ];
 
   var failed = results.filter(function(result) {
@@ -46,7 +71,7 @@ function runStage1Tests() {
     throw new Error('Stage tests failed: ' + JSON.stringify(failed));
   }
 
-  Logger.log('Stage 1, Stage 2, Stage 3, Stage 4, Stage 5, Stage 6, and Stage 7 tests passed: ' + results.length);
+  Logger.log('Stage 1 through Stage 8 tests passed: ' + results.length);
   return results;
 }
 
@@ -81,13 +106,13 @@ function testVisibleNavigationForMember_() {
 function testVisibleNavigationForFinanceOfficer_() {
   return assertEqual_('finance officer sees bank matching', getVisibleNavigation([ROLES.FINANCE_OFFICER]).map(function(item) {
     return item.label;
-  }), ['Dashboard', 'Finances', 'Bank Matching', 'Reports', 'My Profile']);
+  }), ['Dashboard', 'Finances', 'Bank Statements', 'Reports', 'My Profile']);
 }
 
 function testVisibleNavigationForPublisher_() {
   return assertEqual_('publisher sees bank matching', getVisibleNavigation([ROLES.PUBLISHER]).map(function(item) {
     return item.label;
-  }), ['Dashboard', 'Finances', 'Bank Matching', 'Reports', 'My Profile']);
+  }), ['Dashboard', 'Finances', 'Bank Statements', 'Reports', 'My Profile']);
 }
 
 function testMakeId_() {
@@ -218,6 +243,27 @@ function testSuggestCsvMapping_() {
     balance: 'Balance',
     reference: 'Reference'
   });
+}
+
+function testStatementMappingSkipsUndatedTotals_() {
+  var headers = ['EntryDate', 'Details', 'ValueDate', 'Debit', 'Credit', 'Balance'];
+  var mapping = suggestCsvMapping_(headers);
+  var rows = mapStatementTableRows_(headers, [
+    ['01-FEB-25', 'Balance B/F', '', '0.00', '0.00', '280167.34'],
+    ['07-FEB-25', 'SMS SERVICE CHARGE', '07-FEB-25', '16.00', '0.00', '280151.34'],
+    ['', 'Totals..........', '', '2453735.19', '3407290.55', '']
+  ], mapping);
+  return assertEqual_('statement mapping skips an undated totals row', rows.map(function(row) {
+    return {
+      statementDate: row.statementDate,
+      description: row.description,
+      moneyIn: row.moneyIn,
+      moneyOut: row.moneyOut
+    };
+  }), [
+    { statementDate: '2025-02-01', description: 'Balance B/F', moneyIn: 0, moneyOut: 0 },
+    { statementDate: '2025-02-07', description: 'SMS SERVICE CHARGE', moneyIn: 0, moneyOut: 16 }
+  ]);
 }
 
 function testMakeBankLineKey_() {
@@ -421,6 +467,14 @@ function testBuildFinancialPositionCsvRows_() {
       bankBalance: 1000,
       cashAtHand: 200,
       totalFundsAvailable: 1200,
+      receivables: 0,
+      otherAssets: 0,
+      totalAssets: 1200,
+      payables: 0,
+      deferredIncome: 0,
+      otherLiabilities: 0,
+      totalLiabilities: 0,
+      netAssets: 1200,
       representedFundsTotal: 1200
     },
     accountRows: [{ name: 'Main Bank', amount: 1000 }, { name: 'Cash Box', amount: 200 }],
@@ -432,13 +486,341 @@ function testBuildFinancialPositionCsvRows_() {
     ['Bank Balance', 1000],
     ['Cash at Hand', 200],
     ['Total Funds Available', 1200],
-    ['Represented Funds', 1200],
+    ['Total Assets', 1200],
+    ['Total Liabilities', 0],
+    ['Net Assets', 1200],
     [],
-    ['Funds Available', 'Amount'],
+    ['Assets', 'Amount'],
     ['Main Bank', 1000],
     ['Cash Box', 200],
+    ['Receivables / Debtors', 0],
+    ['Other Assets', 0],
+    ['Total Assets', 1200],
     [],
-    ['Represented By', 'Amount'],
+    ['Liabilities', 'Amount'],
+    ['Payables / Creditors', 0],
+    ['Deferred Income', 0],
+    ['Other Liabilities', 0],
+    ['Total Liabilities', 0],
+    [],
+    ['Accumulated and Project Funds', 'Amount'],
     ['General Association Fund', 1200]
   ]);
+}
+
+function testBuildCashFlowCsvRows_() {
+  var rows = buildReportCsvRows_({
+    reportType: 'Statement of Cash Flows',
+    periodLabel: 'For the period 01-07-2026 to 31-07-2026',
+    generatedAt: '2026-07-31T00:00:00.000Z',
+    summary: {
+      cashReceipts: 1000,
+      cashPayments: 250,
+      netOperatingCashFlow: 750,
+      netInvestingCashFlow: 0,
+      netFinancingCashFlow: 0,
+      netIncreaseInCash: 750,
+      openingCash: 500,
+      closingCash: 1250
+    },
+    receiptRows: [{ name: 'Membership Dues', amount: 1000 }],
+    paymentRows: [{ name: 'Bank Charges', amount: 250 }]
+  });
+  return assertEqual_('cash flow CSV reconciles opening and closing cash', rows.slice(4, 13), [
+    ['Cash Flow Item', 'Amount'],
+    ['Cash receipts from operating activities', 1000],
+    ['Cash payments for operating activities', -250],
+    ['Net cash from operating activities', 750],
+    ['Net cash from investing activities', 0],
+    ['Net cash from financing activities', 0],
+    ['Net increase / (decrease) in cash', 750],
+    ['Cash and cash equivalents at start', 500],
+    ['Cash and cash equivalents at end', 1250]
+  ]);
+}
+
+function testAppendReportNotesCsvRows_() {
+  return assertEqual_('report CSV includes organized numbered notes', appendReportNotesCsvRows_([['Report', 'Test']], [{
+    number: 1,
+    title: 'Basis of preparation',
+    paragraphs: ['Published records only.'],
+    rows: [{ name: 'Receivables', amount: 0 }]
+  }]), [
+    ['Report', 'Test'],
+    [],
+    ['Notes to the Financial Statements'],
+    [],
+    ['Note 1 - Basis of preparation'],
+    ['Published records only.'],
+    ['Detail', 'Amount'],
+    ['Receivables', 0]
+  ]);
+}
+
+function testCleanReportAdjustments_() {
+  return assertEqual_('report adjustments keep positive guided period-end items', cleanReportAdjustments_([
+    { type: REPORT_ADJUSTMENT_TYPES.INCOME_RECEIVABLE, amount: '1,500', description: 'Outstanding dues' },
+    { type: REPORT_ADJUSTMENT_TYPES.EXPENSE_PAYABLE, amount: '0', description: '' }
+  ]), [
+    { type: 'Income Earned but Not Received', amount: 1500, description: 'Outstanding dues' }
+  ]);
+}
+
+function testSummarizeReportAdjustments_() {
+  return assertEqual_('period-end adjustments produce balanced statement totals', summarizeReportAdjustments_([
+    { type: REPORT_ADJUSTMENT_TYPES.INCOME_RECEIVABLE, amount: 1000, description: 'Dues' },
+    { type: REPORT_ADJUSTMENT_TYPES.EXPENSE_PAYABLE, amount: 300, description: 'Utilities' },
+    { type: REPORT_ADJUSTMENT_TYPES.DEFERRED_INCOME, amount: 200, description: 'Future event' },
+    { type: REPORT_ADJUSTMENT_TYPES.PREPAID_EXPENSE, amount: 50, description: 'Annual service' }
+  ]), {
+    receivables: 1000,
+    payables: 300,
+    deferredIncome: 200,
+    prepaidExpenses: 50,
+    netAssetsAdjustment: 550
+  });
+}
+
+function testApplyReportAdjustmentsToActivities_() {
+  var income = { 'Cash Dues': 1000 };
+  var expenditure = { 'Cash Welfare': 300 };
+  applyReportAdjustmentsToActivities_(income, expenditure, [
+    { type: REPORT_ADJUSTMENT_TYPES.INCOME_RECEIVABLE, amount: 200, description: 'Dues Receivable' },
+    { type: REPORT_ADJUSTMENT_TYPES.DEFERRED_INCOME, amount: 50, description: 'Future Event Income' },
+    { type: REPORT_ADJUSTMENT_TYPES.EXPENSE_PAYABLE, amount: 100, description: 'Unpaid Welfare Bill' },
+    { type: REPORT_ADJUSTMENT_TYPES.PREPAID_EXPENSE, amount: 20, description: 'Prepaid Service' }
+  ]);
+  return assertEqual_('period-end items adjust activities without changing cash', {
+    income: income,
+    expenditure: expenditure,
+    netActivity: sumAmountRows_(objectToAmountRows_(income)) - sumAmountRows_(objectToAmountRows_(expenditure))
+  }, {
+    income: { 'Cash Dues': 1000, 'Dues Receivable': 200, 'Future Event Income': -50 },
+    expenditure: { 'Cash Welfare': 300, 'Unpaid Welfare Bill': 100, 'Prepaid Service': -20 },
+    netActivity: 770
+  });
+}
+
+function testExtractTransactionNote_() {
+  return assertEqual_('bank-row explanation is reused without technical workflow text', extractTransactionNote_('Created from bank statement line BANK-0001. Note: Roofing first payment | Publisher note: Checked'), 'Roofing first payment');
+}
+
+function testCleanBankLineNoteForReport_() {
+  return assertEqual_('bank-line note drops automatic split wording', cleanBankLineNoteForReport_('Roofing first payment. Split into 3 classifications.'), 'Roofing first payment.');
+}
+
+function testParsePdfStatementLineWithDebitCreditBalance_() {
+  var row = parsePdfStatementLine_('04-07-2026 BANK CHARGES 250.00 0.00 9,750.00');
+  return assertEqual_('PDF parser reads debit credit balance rows', {
+    statementDate: row.statementDate,
+    description: row.description,
+    moneyIn: row.moneyIn,
+    moneyOut: row.moneyOut,
+    runningBalance: row.runningBalance
+  }, {
+    statementDate: '2026-07-04',
+    description: 'BANK CHARGES',
+    moneyIn: 0,
+    moneyOut: 250,
+    runningBalance: 9750
+  });
+}
+
+function testParsePdfStatementLineWithSignedAmount_() {
+  var row = parsePdfStatementLine_('04/07/2026 MEMBER DUES PAYMENT 5,000.00 14,750.00');
+  return assertEqual_('PDF parser reads amount and balance rows', {
+    statementDate: row.statementDate,
+    description: row.description,
+    moneyIn: row.moneyIn,
+    moneyOut: row.moneyOut,
+    runningBalance: row.runningBalance
+  }, {
+    statementDate: '2026-07-04',
+    description: 'MEMBER DUES PAYMENT',
+    moneyIn: 5000,
+    moneyOut: 0,
+    runningBalance: 14750
+  });
+}
+
+function testParseCombinedPdfStatementLines_() {
+  var rows = parsePdfStatementText_([
+    '04-07-2026',
+    'TRANSFER FROM CHIDI OKORO',
+    '0.00 10,000.00 24,750.00'
+  ].join('\n'));
+  return assertEqual_('PDF parser combines wrapped statement lines', {
+    statementDate: rows[0].statementDate,
+    description: rows[0].description,
+    moneyIn: rows[0].moneyIn,
+    moneyOut: rows[0].moneyOut,
+    runningBalance: rows[0].runningBalance
+  }, {
+    statementDate: '2026-07-04',
+    description: 'TRANSFER FROM CHIDI OKORO',
+    moneyIn: 10000,
+    moneyOut: 0,
+    runningBalance: 24750
+  });
+}
+
+function testParsePolarisCreditStatementLine_() {
+  var row = parsePolarisStatementLine_('03-JUN-26 NIBSS:JIM:Strictly 2026 Annual Dues:000015260603131204000002391478 03-JUN-26 0 5,000.00 1,041,914.70');
+  return assertEqual_('Polaris parser maps credit columns', {
+    statementDate: row.statementDate,
+    description: row.description,
+    moneyIn: row.moneyIn,
+    moneyOut: row.moneyOut,
+    runningBalance: row.runningBalance,
+    confidence: row.confidence
+  }, {
+    statementDate: '2026-06-03',
+    description: 'NIBSS:JIM:Strictly 2026 Annual Dues:000015260603131204000002391478',
+    moneyIn: 5000,
+    moneyOut: 0,
+    runningBalance: 1041914.7,
+    confidence: 'High'
+  });
+}
+
+function testParsePolarisDebitStatementLine_() {
+  var row = parsePolarisStatementLine_('20-MAR-25 BRANCHTELLER:058/OKOROEGO CHIBUEZE 20-MAR-25 41,726.02 0 362,261.44');
+  return assertEqual_('Polaris parser maps debit columns', {
+    statementDate: row.statementDate,
+    description: row.description,
+    moneyIn: row.moneyIn,
+    moneyOut: row.moneyOut,
+    runningBalance: row.runningBalance,
+    confidence: row.confidence
+  }, {
+    statementDate: '2025-03-20',
+    description: 'BRANCHTELLER:058/OKOROEGO CHIBUEZE',
+    moneyIn: 0,
+    moneyOut: 41726.02,
+    runningBalance: 362261.44,
+    confidence: 'High'
+  });
+}
+
+function testParseBankStatementChoosesProfile_() {
+  var result = parseBankStatementText_('03-JUN-26 NIBSS:JIM:Annual Dues 03-JUN-26 0 5,000.00 1,041,914.70');
+  return assertEqual_('PDF parser chooses a statement profile', {
+    profile: result.profile,
+    rowCount: result.rows.length,
+    moneyIn: result.rows[0].moneyIn
+  }, {
+    profile: 'Polaris Bank column layout',
+    rowCount: 1,
+    moneyIn: 5000
+  });
+}
+
+function testGenericParserAcceptsMonthNameDate_() {
+  var row = parsePdfStatementLine_('03-JUN-26 Transfer from member 0 5,000.00 1,041,914.70');
+  return assertEqual_('Generic PDF parser accepts month-name dates', {
+    statementDate: row.statementDate,
+    moneyIn: row.moneyIn,
+    moneyOut: row.moneyOut,
+    runningBalance: row.runningBalance
+  }, {
+    statementDate: '2026-06-03',
+    moneyIn: 5000,
+    moneyOut: 0,
+    runningBalance: 1041914.7
+  });
+}
+
+function testStatementBalanceChainPass_() {
+  var rows = validateStatementBalanceChain_([
+    { statementDate: '2026-01-01', description: 'Balance B/F', moneyIn: 0, moneyOut: 0, runningBalance: 1000 },
+    { statementDate: '2026-01-02', description: 'Member dues', moneyIn: 500, moneyOut: 0, runningBalance: 1500 }
+  ]);
+  return assertEqual_('balance chain marks mathematically correct row high confidence', {
+    confidence: rows[1].confidence,
+    check: rows[1].balanceCheck,
+    difference: rows[1].balanceDifference
+  }, { confidence: 'High', check: 'Pass', difference: 0 });
+}
+
+function testStatementBalanceChainBreak_() {
+  var rows = validateStatementBalanceChain_([
+    { statementDate: '2026-01-01', description: 'Balance B/F', moneyIn: 0, moneyOut: 0, runningBalance: 1000 },
+    { statementDate: '2026-01-02', description: 'Bank charge', moneyIn: 50, moneyOut: 0, runningBalance: 950 }
+  ]);
+  return assertEqual_('balance chain flags wrong debit or credit direction', {
+    confidence: rows[1].confidence,
+    check: rows[1].balanceCheck,
+    difference: rows[1].balanceDifference
+  }, { confidence: 'Review', check: 'Break', difference: -100 });
+}
+
+function testDerivedBalanceIncludesTransfers_() {
+  var balance = calculateDerivedAccountBalance_('ACC-0001', 1000, [
+    { 'Account ID': 'ACC-0001', 'Transaction Type': 'Money In', Amount: 500, Status: 'Published' },
+    { 'Account ID': 'ACC-0001', 'Transaction Type': 'Transfer Out', Amount: 200, Status: 'Published' },
+    { 'Account ID': 'ACC-0001', 'Transaction Type': 'Money Out', Amount: 100, Status: 'Published' }
+  ]);
+  return assertEqual_('derived balance includes bank transfers without treating them as income', balance, 1200);
+}
+
+function testTransactionSummaryExcludesTransfers_() {
+  var summary = summarizeTransactions_([
+    { transactionType: 'Money In', amount: 500 },
+    { transactionType: 'Transfer In', amount: 200 },
+    { transactionType: 'Money Out', amount: 100 }
+  ]);
+  return assertEqual_('receipts and payments summary excludes internal transfers', {
+    moneyIn: summary.moneyIn,
+    moneyOut: summary.moneyOut,
+    netMovement: summary.netMovement
+  }, { moneyIn: 500, moneyOut: 100, netMovement: 400 });
+}
+
+function testExplicitSourceBankLineId_() {
+  return assertEqual_('explicit source bank line replaces reason-text link', getSourceBankLineIdFromTransaction_({
+    'Source Bank Line ID': 'BANK-0099',
+    Reason: 'No legacy identifier here'
+  }), 'BANK-0099');
+}
+
+function testBankDescriptionCategorySuggestion_() {
+  var categoryId = suggestCategoryForDescription_('ELECTRONIC MONEY TRANSFER LEVY EMTL', 'Money Out', [
+    { categoryId: 'CAT-0012', categoryType: 'Money Out', categoryName: 'Banking Charges' }
+  ]);
+  return assertEqual_('bank fee description suggests banking charges', categoryId, 'CAT-0012');
+}
+
+function testPdfSignatureAllowsLeadingWhitespace_() {
+  var bytes = [10, 37, 80, 68, 70, 45, 49, 46, 52];
+  var errorMessage = '';
+  try {
+    validateStatementFileSignature_('polaris-statement.pdf', bytes);
+  } catch (error) {
+    errorMessage = error.message;
+  }
+  return assertEqual_('PDF signature allows harmless leading bytes before the header', errorMessage, '');
+}
+
+function testSafeSheetValue_() {
+  return assertEqual_('sheet text that looks like a formula is stored as text', [
+    safeSheetValue_('=IMPORTXML("https://example.com")'),
+    safeSheetValue_('+1234'),
+    safeSheetValue_('Ordinary description'),
+    safeSheetValue_(125)
+  ], [
+    '\'=IMPORTXML("https://example.com")',
+    "'+1234",
+    'Ordinary description',
+    125
+  ]);
+}
+
+function testFinanceDocumentSignatureRejectsFake_() {
+  var message = '';
+  try {
+    validateFinanceDocumentSignature_('receipt.pdf', 'application/pdf', [78, 79, 84, 65, 80, 68, 70]);
+  } catch (error) {
+    message = error.message;
+  }
+  return assertEqual_('receipt upload rejects a fake PDF', message, 'The selected file is not a valid PDF.');
 }
